@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32126.317
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BaseDeDatosSQL", "BaseDeDatosSQL.csproj", "{EAC2741B-4F13-4E74-9EC2-76699EB29E37}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reglas_de_Negocio", "Reglas_de_Negocio\Reglas_de_Negocio.csproj", "{ABDCA1E4-A6FC-4371-A40C-C80B14F3D779}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EAC2741B-4F13-4E74-9EC2-76699EB29E37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAC2741B-4F13-4E74-9EC2-76699EB29E37}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAC2741B-4F13-4E74-9EC2-76699EB29E37}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAC2741B-4F13-4E74-9EC2-76699EB29E37}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABDCA1E4-A6FC-4371-A40C-C80B14F3D779}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABDCA1E4-A6FC-4371-A40C-C80B14F3D779}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABDCA1E4-A6FC-4371-A40C-C80B14F3D779}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABDCA1E4-A6FC-4371-A40C-C80B14F3D779}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AF4090DB-F1FB-4442-9F58-A1C25DD3FDD0}
+	EndGlobalSection
+EndGlobal
