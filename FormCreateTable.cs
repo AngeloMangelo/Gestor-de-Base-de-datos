@@ -35,7 +35,7 @@ namespace BaseDeDatosSQL
             sNombre = userdata.Usuario;
             sContraseña = userdata.Contraseña;
             sServidor = userdata.Servidor;
-            sSQLConnection = accesoSQLServer.GetSQLConnection(sServidor, sNombre, sContraseña);
+            sSQLConnection = accesoSQLServer.GetDBConnection(sServidor, sNombre, sContraseña);
 
             // Inicializar el DataTable para campos
             tablaCampos = new DataTable();

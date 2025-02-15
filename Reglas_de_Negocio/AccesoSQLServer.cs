@@ -14,6 +14,7 @@ using System.IO;
 using System.Net.Configuration;
 using System.Data.Common;
 using System.Collections.ObjectModel;
+using MySql.Data.MySqlClient;
 
 namespace Reglas_de_Negocio
 {
@@ -21,7 +22,36 @@ namespace Reglas_de_Negocio
     {
         public String sLastError = string.Empty;
         public SqlException lastsqlException = null;
-        public string GetSQLConnection(string sServidor, string sUsuario, string sContraseña)
+        public string GetDBConnection(string gestor, string servidor, string usuario, string contraseña, string baseDatos)
+        {
+            string conexion = "";
+
+            switch (gestor.ToLower())
+            {
+                case "sqlserver":
+                    conexion = $"Data Source={servidor};Initial Catalog={baseDatos};User ID={usuario};Password={contraseña};MultipleActiveResultSets=true;";
+                    break;
+                case "mysql":
+                    conexion = $"Server={servidor};Database={baseDatos};User ID={usuario};Password={contraseña};SslMode=None;";
+                    break;
+                case "postgresql":
+                    conexion = $"Host={servidor};Database={baseDatos};Username={usuario};Password={contraseña};";
+                    break;
+                case "oracle":
+                    conexion = $"Data Source={servidor};User Id={usuario};Password={contraseña};";
+                    break;
+                case "firebird":
+                    conexion = $"User={usuario};Password={contraseña};Database={baseDatos};DataSource={servidor};Port=3050;Dialect=3;Charset=UTF8;";
+                    break;
+                default:
+                    throw new ArgumentException("Sistema gestor no soportado");
+            }
+
+            return conexion;
+        }
+        //This function is now deprecated :)
+
+        public string GetDBConnection(string sServidor, string sUsuario, string sContraseña)
         {
             string sSQLConexion = $"Data Source={sServidor};Initial Catalog=master;User ID={sUsuario};Password={sContraseña};MultipleActiveResultSets=true;";
             return sSQLConexion;
@@ -31,6 +61,7 @@ namespace Reglas_de_Negocio
             string sSQLConexion = $"Data Source={sServidor};Initial Catalog={database};User ID={sUsuario};Password={sContraseña};MultipleActiveResultSets=true;";
             return sSQLConexion;
         }
+        //Comprobar conexion a SQL Server
         public Boolean SiHayConexion(string sServidor, string sUsuario, string sContraseña)
         {
             Boolean bAllOk = false;
@@ -66,6 +97,32 @@ namespace Reglas_de_Negocio
             return bAllOk;
         }
 
+        //Comprobar conexion a MySQL
+        public Boolean SiHayConexionMySQL(string sServidor, string sUsuario, string sContraseña)
+        {
+            Boolean bAllOk = false;
+
+            string conexion = $"Server={sServidor}; Uid={sUsuario}; Pwd={sContraseña};";
+
+            using (MySqlConnection conn = new MySqlConnection(conexion))
+            {
+                try
+                {
+                    conn.Open();
+                    conn.Close();
+
+                    bAllOk = true;
+                }
+                catch (Exception ex)
+                {
+                    sLastError = ex.Message;
+                    bAllOk = false;
+                }
+            }
+
+            return bAllOk;
+        }
+
         public bool ExcecuteQuery(string query, SqlConnection connection)
         {
             Boolean bAllOk = false;
@@ -86,7 +143,7 @@ namespace Reglas_de_Negocio
 
         public void CargarBasesdeDatos(string sServidor, string sUsuario, string sContraseña, System.Windows.Forms.TreeView tv)
         {
-            string sConexion = GetSQLConnection(sServidor, sUsuario, sContraseña);
+            string sConexion = GetDBConnection(sServidor, sUsuario, sContraseña);
             SqlConnection conexion = new SqlConnection(sConexion);
 
             SqlCommand cm = new SqlCommand("SELECT NAME FROM DATABASES databases WHERE NAME NOT IN('master', 'tempdb', 'model', 'msdb');", conexion);
@@ -109,7 +166,7 @@ namespace Reglas_de_Negocio
             }
 
         }
-        //version nueva de la carga de base de datos
+        //version nueva de la carga de base de datos en SQLServer
         public void CargarServidores(System.Windows.Forms.TreeView treeView, SqlConnection conexion)
         {
             treeView.Nodes.Clear();
@@ -211,7 +268,7 @@ namespace Reglas_de_Negocio
             DataGridView dgvDataSource = new DataGridView();
             MakeQueryInsert(dict, tablename, dgvDataSource, dataAdapter, sServidor, sUsuario, sContraseña, db);
             List<string> Columnas = new List<string>();
-            string sConexion = GetSQLConnection(sServidor, sUsuario, sContraseña);
+            string sConexion = GetDBConnection(sServidor, sUsuario, sContraseña);
 
             try
             {
@@ -339,7 +396,7 @@ namespace Reglas_de_Negocio
                 string insertValues = string.Join(", ", columnValues.Keys.Select(key => "@" + key));
                 string insertQuery = $"USE {db}; INSERT INTO {tableName} ({insertColumns}) VALUES ({insertValues})";
 
-                string sSQLConnection = GetSQLConnection(sServidor, sUsuario, sContraseña);
+                string sSQLConnection = GetDBConnection(sServidor, sUsuario, sContraseña);
                 using (SqlConnection conexion = new SqlConnection(sSQLConnection))
                 {
                     conexion.Open();

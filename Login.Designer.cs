@@ -35,39 +35,36 @@
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.btnIngresar = new System.Windows.Forms.Button();
-            this.comboBox1 = new System.Windows.Forms.ComboBox();
+            this.cbMotorDB = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // tbServidor
             // 
-            this.tbServidor.Location = new System.Drawing.Point(94, 82);
+            this.tbServidor.Location = new System.Drawing.Point(25, 65);
             this.tbServidor.Name = "tbServidor";
             this.tbServidor.Size = new System.Drawing.Size(160, 20);
-            this.tbServidor.TabIndex = 0;
-            this.tbServidor.Text = "DESKTOP-6FTA15K\\SQLANGEL";
+            this.tbServidor.TabIndex = 1;
             // 
             // tbUsuario
             // 
-            this.tbUsuario.Location = new System.Drawing.Point(95, 121);
+            this.tbUsuario.Location = new System.Drawing.Point(26, 104);
             this.tbUsuario.Name = "tbUsuario";
             this.tbUsuario.Size = new System.Drawing.Size(160, 20);
-            this.tbUsuario.TabIndex = 1;
-            this.tbUsuario.Text = "sa";
+            this.tbUsuario.TabIndex = 2;
             // 
             // tbContraseña
             // 
-            this.tbContraseña.Location = new System.Drawing.Point(95, 160);
+            this.tbContraseña.Location = new System.Drawing.Point(26, 143);
             this.tbContraseña.Name = "tbContraseña";
             this.tbContraseña.PasswordChar = '*';
             this.tbContraseña.Size = new System.Drawing.Size(160, 20);
-            this.tbContraseña.TabIndex = 2;
-            this.tbContraseña.Text = "12345";
+            this.tbContraseña.TabIndex = 3;
             // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(92, 66);
+            this.label1.Location = new System.Drawing.Point(23, 49);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(106, 13);
             this.label1.TabIndex = 3;
@@ -77,7 +74,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(91, 105);
+            this.label2.Location = new System.Drawing.Point(22, 88);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(46, 13);
             this.label2.TabIndex = 4;
@@ -86,7 +83,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(92, 144);
+            this.label3.Location = new System.Drawing.Point(23, 127);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(64, 13);
             this.label3.TabIndex = 5;
@@ -94,26 +91,33 @@
             // 
             // btnIngresar
             // 
-            this.btnIngresar.Location = new System.Drawing.Point(134, 186);
+            this.btnIngresar.Location = new System.Drawing.Point(65, 169);
             this.btnIngresar.Name = "btnIngresar";
             this.btnIngresar.Size = new System.Drawing.Size(75, 26);
-            this.btnIngresar.TabIndex = 6;
+            this.btnIngresar.TabIndex = 4;
             this.btnIngresar.Text = "Ingresar";
             this.btnIngresar.UseVisualStyleBackColor = true;
             this.btnIngresar.Click += new System.EventHandler(this.btnIngresar_Click);
             // 
-            // comboBox1
+            // cbMotorDB
             // 
-            this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Location = new System.Drawing.Point(93, 42);
-            this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(161, 21);
-            this.comboBox1.TabIndex = 7;
+            this.cbMotorDB.FormattingEnabled = true;
+            this.cbMotorDB.Items.AddRange(new object[] {
+            "SQLServer",
+            "MySQL",
+            "PosgresSQL",
+            "Oracle",
+            "Firebird"});
+            this.cbMotorDB.Location = new System.Drawing.Point(24, 25);
+            this.cbMotorDB.Name = "cbMotorDB";
+            this.cbMotorDB.Size = new System.Drawing.Size(161, 21);
+            this.cbMotorDB.TabIndex = 0;
+            this.cbMotorDB.SelectedIndexChanged += new System.EventHandler(this.cbMotorDB_SelectedIndexChanged);
             // 
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(92, 26);
+            this.label4.Location = new System.Drawing.Point(23, 9);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(122, 13);
             this.label4.TabIndex = 8;
@@ -123,9 +127,9 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(327, 220);
+            this.ClientSize = new System.Drawing.Size(198, 220);
             this.Controls.Add(this.label4);
-            this.Controls.Add(this.comboBox1);
+            this.Controls.Add(this.cbMotorDB);
             this.Controls.Add(this.btnIngresar);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
@@ -151,7 +155,7 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Button btnIngresar;
-        private System.Windows.Forms.ComboBox comboBox1;
+        private System.Windows.Forms.ComboBox cbMotorDB;
         private System.Windows.Forms.Label label4;
     }
 }

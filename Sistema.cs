@@ -21,6 +21,7 @@ namespace BaseDeDatosSQL
         private string sNombre;    // Variable para almacenar el nombre de usuario
         private string sContraseña; // Variable para almacenar la contraseña
         private string sServidor;  // Variable para almacenar el servidor
+        private string sGestor;    // Variable para almacenar el gestor de base de datos
 
         private string selectedTablename;
         private string SelectedDb;
@@ -39,7 +40,7 @@ namespace BaseDeDatosSQL
             sContraseña = userdata.Contraseña;
             sServidor = userdata.Servidor;
 
-            SqlConnection conexion = new SqlConnection(accesoSQLServer.GetSQLConnection(sServidor, sNombre, sContraseña));
+            SqlConnection conexion = new SqlConnection(accesoSQLServer.GetDBConnection(sServidor, sNombre, sContraseña));
             
             treeViewAsistente.ShowPlusMinus = true;  // Muestra los botones de expansión
             treeViewAsistente.ShowRootLines = true;  // Muestra las líneas de expansión en el nodo raíz (opcional)
@@ -159,7 +160,7 @@ namespace BaseDeDatosSQL
             sContraseña = userdata.Contraseña;
             sServidor = userdata.Servidor;
 
-            SqlConnection conexion = new SqlConnection(accesoSQLServer.GetSQLConnection(sServidor, sNombre, sContraseña));
+            SqlConnection conexion = new SqlConnection(accesoSQLServer.GetDBConnection(sServidor, sNombre, sContraseña));
 
             accesoSQLServer.CargarServidores(treeViewAsistente, conexion);
         }

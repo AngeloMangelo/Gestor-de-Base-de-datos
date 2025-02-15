@@ -67,7 +67,7 @@ namespace BaseDeDatosSQL
 
         private void btnGuardar_Click(object sender, EventArgs e)
         {
-            SqlConnection conexion = new SqlConnection(accesoSQLServer.GetSQLConnection("DESKTOP-VSN2COF", "sa", "12345"));
+            SqlConnection conexion = new SqlConnection(accesoSQLServer.GetDBConnection("DESKTOP-VSN2COF", "sa", "12345"));
             //SqlConnection conexion = new SqlConnection($"Data Source={sServidor};Initial Catalog=Tecnologico;User ID={sNombre};Password={sContraseña};MultipleActiveResultSets=true;");
             accesoSQLServer.MustChangeQuery(sNombre, tbContrasena.Text, conexion);
         }

@@ -48,6 +48,7 @@
             // 
             // btnAddBD
             // 
+            this.btnAddBD.Enabled = false;
             this.btnAddBD.Location = new System.Drawing.Point(13, 3);
             this.btnAddBD.Name = "btnAddBD";
             this.btnAddBD.Size = new System.Drawing.Size(128, 23);
@@ -69,6 +70,7 @@
             // 
             // btnRefreshDB
             // 
+            this.btnRefreshDB.Enabled = false;
             this.btnRefreshDB.Location = new System.Drawing.Point(292, 41);
             this.btnRefreshDB.Name = "btnRefreshDB";
             this.btnRefreshDB.Size = new System.Drawing.Size(88, 53);
@@ -80,6 +82,7 @@
             // llCreateLogin
             // 
             this.llCreateLogin.AutoSize = true;
+            this.llCreateLogin.Enabled = false;
             this.llCreateLogin.Location = new System.Drawing.Point(458, 387);
             this.llCreateLogin.Name = "llCreateLogin";
             this.llCreateLogin.Size = new System.Drawing.Size(48, 13);
