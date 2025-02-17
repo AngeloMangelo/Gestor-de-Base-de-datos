@@ -22,6 +22,7 @@ namespace BaseDeDatosSQL
         private string sNombre;    // Variable para almacenar el nombre de usuario
         private string sContraseña; // Variable para almacenar la contraseña
         private string sServidor;  // Variable para almacenar el servidor
+        private string sGestor;    // Variable para almacenar el gestor
         string sSQLConnection;
         string tablename;
         string db;
@@ -38,7 +39,8 @@ namespace BaseDeDatosSQL
             sNombre = userdata.Usuario;
             sContraseña = userdata.Contraseña;
             sServidor = userdata.Servidor;
-            sSQLConnection = accesoSQLServer.GetDBConnection(sServidor, sNombre, sContraseña);           
+            sGestor = userdata.SistemaGestor;
+            DbConnection conexion = accesoSQLServer.GetDBConnection(sGestor, sServidor, sNombre, sContraseña);           
         }
         private void btnEjecutarQuery_Click(object sender, EventArgs e)
         {

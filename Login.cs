@@ -38,8 +38,8 @@ namespace BaseDeDatosSQL
             string sServidor = tbServidor.Text;
 
 
-            userdata = new Userdata(sUsuario, sContraseña, sServidor);
-            if (sGestor == "SQL Server")
+            userdata = new Userdata(sUsuario, sContraseña, sServidor, sGestor);
+            if (sGestor == "SQLServer")
             {
                 if (!acceso.SiHayConexion(userdata.Servidor, userdata.Usuario, userdata.Contraseña))
                 {
@@ -48,7 +48,7 @@ namespace BaseDeDatosSQL
                     {
                         if (acceso.lastsqlException.Number == 18488)
                         {
-                            FormMustChangePassword formMustChangePassword = new FormMustChangePassword(sServidor, sUsuario, sContraseña);
+                            FormMustChangePassword formMustChangePassword = new FormMustChangePassword(sGestor, sServidor, sUsuario, sContraseña);
                             formMustChangePassword.ShowDialog();
                         }
                     }
@@ -81,7 +81,17 @@ namespace BaseDeDatosSQL
             }
             else if (sGestor == "PostgreSQL")
             {
-                MessageBox.Show("Error: No se ha implementado la conexión a PostgreSQL", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (!acceso.SiHayConexionPostgreSQL(userdata.Servidor, userdata.Usuario, userdata.Contraseña))
+                {
+                    MessageBox.Show("Error: " + acceso.sLastError, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                    bLoginIsCorrect = false;
+                }
+                else
+                {
+                    bLoginIsCorrect = true;
+                    this.Close();
+                }
             }
             else if (sGestor == "Oracle")
             {
@@ -125,6 +135,8 @@ namespace BaseDeDatosSQL
             else if (cbMotorDB.SelectedIndex == 2)
             {
                 tbServidor.Text = "localhost";
+                tbUsuario.Text = "postgres";
+                tbContraseña.Text = "12345";
             }
             //Oracle
             else if (cbMotorDB.SelectedIndex == 3)

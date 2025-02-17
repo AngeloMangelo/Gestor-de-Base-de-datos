@@ -105,7 +105,7 @@
             this.cbMotorDB.Items.AddRange(new object[] {
             "SQLServer",
             "MySQL",
-            "PosgresSQL",
+            "PostgreSQL",
             "Oracle",
             "Firebird"});
             this.cbMotorDB.Location = new System.Drawing.Point(24, 25);

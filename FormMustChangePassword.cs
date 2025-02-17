@@ -18,13 +18,16 @@ namespace BaseDeDatosSQL
         string sServidor;
         string sNombre;
         string sContraseña;
+        string sGestor;
         string db;
-        public FormMustChangePassword(string sServidor, string sNombre, string sContraseña)
+
+        public FormMustChangePassword(string sGestor, string sServidor, string sNombre, string sContraseña)
         {
             InitializeComponent();
             this.sServidor = sServidor;
             this.sNombre = sNombre;
             this.sContraseña = sContraseña;
+            this.sGestor = sGestor;
             this.db = db;
         }
 
@@ -67,9 +70,9 @@ namespace BaseDeDatosSQL
 
         private void btnGuardar_Click(object sender, EventArgs e)
         {
-            SqlConnection conexion = new SqlConnection(accesoSQLServer.GetDBConnection("DESKTOP-VSN2COF", "sa", "12345"));
+            //SqlConnection conexion = new SqlConnection(accesoSQLServer.GetDBConnection("DESKTOP-VSN2COF", "sa", "12345"));
             //SqlConnection conexion = new SqlConnection($"Data Source={sServidor};Initial Catalog=Tecnologico;User ID={sNombre};Password={sContraseña};MultipleActiveResultSets=true;");
-            accesoSQLServer.MustChangeQuery(sNombre, tbContrasena.Text, conexion);
+            //accesoSQLServer.MustChangeQuery(sNombre, tbContrasena.Text, conexion);
         }
     }
 }

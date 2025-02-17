@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
@@ -24,7 +25,8 @@ namespace BaseDeDatosSQL
 
         private string sNombre;
         private string sContraseña; 
-        private string sServidor;  
+        private string sServidor;
+        private string sGestor;
 
 
         public FormCreateUser(Userdata userdata)
@@ -34,7 +36,7 @@ namespace BaseDeDatosSQL
             sNombre = userdata.Usuario;
             sContraseña = userdata.Contraseña;
             sServidor = userdata.Servidor;
-            sSQLConnection = accesoSQLServer.GetDBConnection(sServidor, sNombre, sContraseña);
+            DbConnection conexion = accesoSQLServer.GetDBConnection(sGestor, sServidor, sNombre, sContraseña);
 
         }
 

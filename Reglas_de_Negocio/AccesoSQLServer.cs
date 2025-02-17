@@ -6,15 +6,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Drawing;
 using System.Collections;
-using static System.Net.Mime.MediaTypeNames;
 using System.IO;
 using System.Net.Configuration;
 using System.Data.Common;
 using System.Collections.ObjectModel;
 using MySql.Data.MySqlClient;
+using FirebirdSql.Data.FirebirdClient;
+using Npgsql;
+using Oracle.ManagedDataAccess.Client;
 
 namespace Reglas_de_Negocio
 {
@@ -22,26 +23,26 @@ namespace Reglas_de_Negocio
     {
         public String sLastError = string.Empty;
         public SqlException lastsqlException = null;
-        public string GetDBConnection(string gestor, string servidor, string usuario, string contraseña, string baseDatos)
+        public DbConnection GetDBConnection(string gestor, string servidor, string usuario, string contraseña)
         {
-            string conexion = "";
+            DbConnection conexion;
 
             switch (gestor.ToLower())
             {
                 case "sqlserver":
-                    conexion = $"Data Source={servidor};Initial Catalog={baseDatos};User ID={usuario};Password={contraseña};MultipleActiveResultSets=true;";
+                    conexion = new SqlConnection($"Data Source={servidor};Initial Catalog=master;User ID={usuario};Password={contraseña};MultipleActiveResultSets=true;");
                     break;
                 case "mysql":
-                    conexion = $"Server={servidor};Database={baseDatos};User ID={usuario};Password={contraseña};SslMode=None;";
+                    conexion = new MySqlConnection($"Server={servidor};User ID={usuario};Password={contraseña};");
                     break;
                 case "postgresql":
-                    conexion = $"Host={servidor};Database={baseDatos};Username={usuario};Password={contraseña};";
+                    conexion = new NpgsqlConnection($"Host={servidor};Username={usuario};Password={contraseña};");
                     break;
                 case "oracle":
-                    conexion = $"Data Source={servidor};User Id={usuario};Password={contraseña};";
+                    conexion = new OracleConnection($"Data Source={servidor};User Id={usuario};Password={contraseña};");
                     break;
                 case "firebird":
-                    conexion = $"User={usuario};Password={contraseña};Database={baseDatos};DataSource={servidor};Port=3050;Dialect=3;Charset=UTF8;";
+                    conexion = new FbConnection($"User={usuario};Password={contraseña};DataSource={servidor};Port=3050;Dialect=3;Charset=UTF8;");
                     break;
                 default:
                     throw new ArgumentException("Sistema gestor no soportado");
@@ -49,13 +50,14 @@ namespace Reglas_de_Negocio
 
             return conexion;
         }
+
         //This function is now deprecated :)
 
-        public string GetDBConnection(string sServidor, string sUsuario, string sContraseña)
-        {
-            string sSQLConexion = $"Data Source={sServidor};Initial Catalog=master;User ID={sUsuario};Password={sContraseña};MultipleActiveResultSets=true;";
-            return sSQLConexion;
-        }
+        //public string GetDBConnection(string sServidor, string sUsuario, string sContraseña)
+        //{
+        //    string sSQLConexion = $"Data Source={sServidor};Initial Catalog=master;User ID={sUsuario};Password={sContraseña};MultipleActiveResultSets=true;";
+        //    return sSQLConexion;
+        //}
         public string GetCustomSQLConnection(string sServidor, string sUsuario, string sContraseña, string database)
         {
             string sSQLConexion = $"Data Source={sServidor};Initial Catalog={database};User ID={sUsuario};Password={sContraseña};MultipleActiveResultSets=true;";
@@ -122,6 +124,32 @@ namespace Reglas_de_Negocio
 
             return bAllOk;
         }
+        // Comprobar conexión a PostgreSQL
+        public Boolean SiHayConexionPostgreSQL(string sServidor, string sUsuario, string sContraseña)
+        {
+            Boolean bAllOk = false;
+
+            string conexion = $"Host={sServidor};Username={sUsuario};Password={sContraseña};Database=postgres;";
+
+            using (NpgsqlConnection conn = new NpgsqlConnection(conexion))
+            {
+                try
+                {
+                    conn.Open();
+                    conn.Close();
+
+                    bAllOk = true;
+                }
+                catch (Exception ex)
+                {
+                    sLastError = ex.Message;
+                    bAllOk = false;
+                }
+            }
+
+            return bAllOk;
+        }
+
 
         public bool ExcecuteQuery(string query, SqlConnection connection)
         {
@@ -141,66 +169,131 @@ namespace Reglas_de_Negocio
             return bAllOk;
         }
 
-        public void CargarBasesdeDatos(string sServidor, string sUsuario, string sContraseña, System.Windows.Forms.TreeView tv)
+        public void CargarBasesdeDatos(string sGestor, string sServidor, string sUsuario, string sContraseña, TreeView tv)
         {
-            string sConexion = GetDBConnection(sServidor, sUsuario, sContraseña);
-            SqlConnection conexion = new SqlConnection(sConexion);
+            DbConnection conexion = GetDBConnection(sGestor, sServidor, sUsuario, sContraseña);
+            DbCommand cm;
+            string consulta = "";
 
-            SqlCommand cm = new SqlCommand("SELECT NAME FROM DATABASES databases WHERE NAME NOT IN('master', 'tempdb', 'model', 'msdb');", conexion);
+            switch (sGestor.ToLower())
+            {
+                case "sqlserver":
+                    consulta = "SELECT name FROM sys.databases WHERE name NOT IN ('master', 'tempdb', 'model', 'msdb');";
+                    cm = new SqlCommand(consulta, (SqlConnection)conexion);
+                    break;
+                case "mysql":
+                    consulta = "SHOW DATABASES;";
+                    cm = new MySqlCommand(consulta, (MySqlConnection)conexion);
+                    break;
+                case "postgresql":
+                    consulta = "SELECT datname FROM pg_database WHERE datistemplate = false;";
+                    cm = new NpgsqlCommand(consulta, (NpgsqlConnection)conexion);
+                    break;
+                case "oracle":
+                    consulta = "SELECT username FROM all_users;";
+                    cm = new OracleCommand(consulta, (OracleConnection)conexion);
+                    break;
+                case "firebird":
+                    consulta = "SELECT rdb$database_name FROM rdb$databases;";
+                    cm = new FbCommand(consulta, (FbConnection)conexion);
+                    break;
+                default:
+                    throw new ArgumentException("Sistema gestor no soportado");
+            }
+
             try
             {
-                TreeNode nodo = new TreeNode($"{sServidor}");
-                tv.Nodes.Add(nodo);
-                SqlDataAdapter da = new SqlDataAdapter(cm);
+                conexion.Open();
+                TreeNode nodoServidor = new TreeNode($"{sServidor}");
+                tv.Nodes.Add(nodoServidor);
+
+                DbDataAdapter da;
                 DataTable dt = new DataTable();
+
+                if (sGestor.ToLower() == "sqlserver")
+                    da = new SqlDataAdapter((SqlCommand)cm);
+                else if (sGestor.ToLower() == "mysql")
+                    da = new MySqlDataAdapter((MySqlCommand)cm);
+                else if (sGestor.ToLower() == "postgresql")
+                    da = new NpgsqlDataAdapter((NpgsqlCommand)cm);
+                else if (sGestor.ToLower() == "oracle")
+                    da = new OracleDataAdapter((OracleCommand)cm);
+                else if (sGestor.ToLower() == "firebird")
+                    da = new FbDataAdapter((FbCommand)cm);
+                else
+                    throw new ArgumentException("Sistema gestor no soportado");
+
                 da.Fill(dt);
+
                 foreach (DataRow dr in dt.Rows)
                 {
-                    TreeNode node = new TreeNode(dr["NAME"].ToString());
-                    tv.Nodes.Add(node);
+                    TreeNode nodoBD = new TreeNode(dr[0].ToString());
+                    nodoServidor.Nodes.Add(nodoBD);
                 }
             }
             catch (Exception ex)
             {
-                sLastError = ex.Message;
+                MessageBox.Show("Error al cargar bases de datos: " + ex.Message);
             }
-
+            finally
+            {
+                conexion.Close();
+            }
         }
-        //version nueva de la carga de base de datos en SQLServer
-        public void CargarServidores(System.Windows.Forms.TreeView treeView, SqlConnection conexion)
+        //version nueva de la carga de base de datos DEPENDIENDO DEL SISTEMA GESTOR DE BASE DE DATOS
+        public void CargarServidores(System.Windows.Forms.TreeView treeView, DbConnection conexion, string gestor)
         {
             treeView.Nodes.Clear();
-
-            TreeNode serverNode = new TreeNode(conexion.DataSource);
+            TreeNode serverNode = new TreeNode(conexion.Database);
             treeView.Nodes.Add(serverNode);
 
             try
             {
                 conexion.Open();
+                DataTable databases = new DataTable();
 
-                DataTable databases = conexion.GetSchema("Databases");
+                switch (gestor.ToLower())
+                {
+                    case "sqlserver":
+                        databases = conexion.GetSchema("Databases");
+                        break;
+
+                    case "mysql":
+                        using (MySqlCommand cmd = new MySqlCommand("SHOW DATABASES", (MySqlConnection)conexion))
+                        using (MySqlDataAdapter adapter = new MySqlDataAdapter(cmd))
+                        {
+                            adapter.Fill(databases);
+                        }
+                        break;
+
+                    case "postgresql":
+                        using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT datname FROM pg_database WHERE datistemplate = false;", (NpgsqlConnection)conexion))
+                        using (NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(cmd))
+                        {
+                            adapter.Fill(databases);
+                        }
+                        break;
+
+                    case "oracle":
+                        using (OracleCommand cmd = new OracleCommand("SELECT username FROM all_users", (OracleConnection)conexion))
+                        using (OracleDataAdapter adapter = new OracleDataAdapter(cmd))
+                        {
+                            adapter.Fill(databases);
+                        }
+                        break;
+
+                    case "firebird":
+                        throw new NotImplementedException("Cargar bases de datos en Firebird aún no está soportado.");
+
+                    default:
+                        throw new ArgumentException("Sistema gestor no soportado");
+                }
+
                 foreach (DataRow database in databases.Rows)
                 {
-                    string dbName = database["database_name"].ToString();
-                    TreeNode dbNode = new TreeNode(dbName);
-                    dbNode.Tag = "BaseDeDatos"; // Asigna el tipo de nodo como "BaseDeDatos"
+                    string dbName = database[0].ToString();
+                    TreeNode dbNode = new TreeNode(dbName) { Tag = "BaseDeDatos" };
                     serverNode.Nodes.Add(dbNode);
-
-                    SqlCommand cmd = new SqlCommand($"USE [{dbName}]; SELECT table_name FROM information_schema.tables WHERE table_type = 'BASE TABLE'", conexion);
-                    SqlDataReader reader = cmd.ExecuteReader();
-
-                    while (reader.Read())
-                    {
-                        string tableName = reader["table_name"].ToString();
-
-                        TreeNode tableNode = new TreeNode(tableName);
-                        tableNode.Tag = "Tabla"; // Asigna el tipo de nodo como "Tabla"
-                        dbNode.Nodes.Add(tableNode);
-
-                        CargarColumnas(tableNode, dbName, tableName, conexion);
-                    }
-
-                    reader.Close();
                 }
             }
             catch (Exception ex)
@@ -212,6 +305,7 @@ namespace Reglas_de_Negocio
                 conexion.Close();
             }
         }
+
         public void BasedeDatosEnComboBox(System.Windows.Forms.ComboBox comboBox, SqlConnection conexion)
         {
             try
@@ -261,38 +355,62 @@ namespace Reglas_de_Negocio
             }
         }
         //carga columnas de datagridview
-        public List<string> CargarColumnas(string db, string tablename, string sServidor, string sUsuario, string sContraseña)
+        public List<string> CargarColumnas(string sGestor, string db, string tablename, string sServidor, string sUsuario, string sContraseña)
         {
             Dictionary<string, object> dict = new Dictionary<string, object>();
             SqlDataAdapter dataAdapter = new SqlDataAdapter();
             DataGridView dgvDataSource = new DataGridView();
-            MakeQueryInsert(dict, tablename, dgvDataSource, dataAdapter, sServidor, sUsuario, sContraseña, db);
+            //MakeQueryInsert(dict, tablename, dgvDataSource, dataAdapter, sGestor, sServidor, sUsuario, sContraseña, db);
+
             List<string> Columnas = new List<string>();
-            string sConexion = GetDBConnection(sServidor, sUsuario, sContraseña);
+            DbConnection conexion = GetDBConnection(sGestor, sServidor, sUsuario, sContraseña);
+            DbCommand cmd;
+            string query = "";
+
+            switch (sGestor.ToLower())
+            {
+                case "sqlserver":
+                    query = $"SELECT COLUMN_NAME FROM {db}.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{tablename}'";
+                    cmd = new SqlCommand(query, (SqlConnection)conexion);
+                    break;
+                case "mysql":
+                    query = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{db}' AND TABLE_NAME = '{tablename}';";
+                    cmd = new MySqlCommand(query, (MySqlConnection)conexion);
+                    break;
+                case "postgresql":
+                    query = $"SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '{tablename}';";
+                    cmd = new NpgsqlCommand(query, (NpgsqlConnection)conexion);
+                    break;
+                case "oracle":
+                    query = $"SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = UPPER('{tablename}')";
+                    cmd = new OracleCommand(query, (OracleConnection)conexion);
+                    break;
+                case "firebird":
+                    query = $"SELECT RDB$FIELD_NAME FROM RDB$RELATION_FIELDS WHERE RDB$RELATION_NAME = UPPER('{tablename}')";
+                    cmd = new FbCommand(query, (FbConnection)conexion);
+                    break;
+                default:
+                    throw new ArgumentException("Sistema gestor no soportado");
+            }
 
             try
             {
-                using (SqlConnection conexion = new SqlConnection(sConexion))
+                conexion.Open();
+                using (DbDataReader reader = cmd.ExecuteReader())
                 {
-                    conexion.Open();
-                    string query = $"SELECT COLUMN_NAME FROM {db}.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = \"{tablename}\"";
-
-                    using (SqlCommand cmd = new SqlCommand(query, conexion))
+                    while (reader.Read())
                     {
-                       // cmd.Parameters.AddWithValue("@Tabla", $"{tablename}");
-                        SqlDataReader lectura = cmd.ExecuteReader();
-
-                        while (lectura.Read())
-                        {
-                            Columnas.Add(lectura[0].ToString());
-                        }
+                        Columnas.Add(reader[0].ToString());
                     }
                 }
             }
             catch (Exception ex)
             {
-                // Manejo de excepciones: aquí puedes registrar errores o mostrar mensajes de error.
-                Console.WriteLine("Error: " + ex.Message);
+                Console.WriteLine("Error al cargar columnas: " + ex.Message);
+            }
+            finally
+            {
+                conexion.Close();
             }
 
             return Columnas;
@@ -368,66 +486,64 @@ namespace Reglas_de_Negocio
                 }
             }
         }
-        public void MakeQueryInsert(Dictionary<string, object> columnValues, string tableName, DataGridView dgvDataSource, SqlDataAdapter dataAdapter, string sServidor, string sUsuario, string sContraseña, string db)
-        {
-            try
-            {
-                GetRowsInfo(columnValues, dgvDataSource);
+        //public void MakeQueryInsert(Dictionary<string, object> columnValues, string tableName, DataGridView dgvDataSource, DbDataAdapter dataAdapter, string sGestor, string sServidor, string sUsuario, string sContraseña, string db)
+        //{
+        //    try
+        //    {
+        //        GetRowsInfo(columnValues, dgvDataSource);
+        //        DataGridViewRow currentRow = dgvDataSource.CurrentRow;
 
-                DataGridViewRow currentRow = dgvDataSource.CurrentRow;
+        //        if (currentRow == null)
+        //        {
+        //            MessageBox.Show("No hay una fila seleccionada para insertar.");
+        //            return;
+        //        }
 
-                // Recorrer las columnas del DataGridView y obtener los datos de la fila
-                foreach (DataGridViewCell cell in currentRow.Cells)
-                {
-                    // Obtener el nombre de la columna desde el encabezado de la columna
-                    string columnName = dgvDataSource.Columns[cell.ColumnIndex].HeaderText;
+        //        // Obtener valores de la fila seleccionada
+        //        foreach (DataGridViewCell cell in currentRow.Cells)
+        //        {
+        //            string columnName = dgvDataSource.Columns[cell.ColumnIndex].HeaderText;
+        //            object cellValue = cell.Value;
 
-                    object cellValue = cell.Value;
+        //            if (cellValue != null && !string.IsNullOrWhiteSpace(cellValue.ToString()))
+        //            {
+        //                columnValues[columnName] = cellValue;
+        //            }
+        //        }
 
-                    if (cellValue != null && !string.IsNullOrWhiteSpace(cellValue.ToString()))
-                    {
-                        // Agregar el nombre de la columna y el valor al diccionario
-                        columnValues[columnName] = cellValue;
-                    }
-                }
+        //        // Crear la consulta de inserción dinámica
+        //        string insertColumns = string.Join(", ", columnValues.Keys);
+        //        string insertValues = string.Join(", ", columnValues.Keys.Select(key => "@" + key));
+        //        string insertQuery = $"INSERT INTO {tableName} ({insertColumns}) VALUES ({insertValues})";
 
-                // Crear una consulta INSERT dinámica basada en los datos de la fila
-                string insertColumns = string.Join(", ", columnValues.Keys);
-                string insertValues = string.Join(", ", columnValues.Keys.Select(key => "@" + key));
-                string insertQuery = $"USE {db}; INSERT INTO {tableName} ({insertColumns}) VALUES ({insertValues})";
+        //        using (DbConnection conexion = GetDBConnection(sGestor, sServidor, sUsuario, sContraseña, db))
+        //        {
+        //            using (DbCommand command = conexion.CreateCommand())
+        //            {
+        //                command.CommandText = insertQuery;
 
-                string sSQLConnection = GetDBConnection(sServidor, sUsuario, sContraseña);
-                using (SqlConnection conexion = new SqlConnection(sSQLConnection))
-                {
-                    conexion.Open();
-                    using (SqlCommand command = new SqlCommand(insertQuery, conexion))
-                    {
-                        // Agregar los parámetros
-                        foreach (var kvp in columnValues)
-                        {
-                            command.Parameters.AddWithValue("@" + kvp.Key, kvp.Value);
+        //                // Agregar los parámetros
+        //                foreach (var kvp in columnValues)
+        //                {
+        //                    DbParameter parameter = command.CreateParameter();
+        //                    parameter.ParameterName = "@" + kvp.Key;
+        //                    parameter.Value = kvp.Value ?? DBNull.Value;
+        //                    command.Parameters.Add(parameter);
+        //                }
 
-                        }
+        //                conexion.Open();
+        //                int rowsAffected = command.ExecuteNonQuery();
+        //                conexion.Close();
 
-                        int rowsAffected = command.ExecuteNonQuery();
-                        conexion.Close();
-
-                        if (rowsAffected > 0)
-                        {
-                            MessageBox.Show("Se insertaron datos correctamente.");
-                        }
-                        else
-                        {
-                            MessageBox.Show("No se insertaron datos.");
-                        }
-
-                    }
-                }
-            }catch(Exception ex)
-            {
-                MessageBox.Show( ex.Message );
-            }
-        }
+        //                MessageBox.Show(rowsAffected > 0 ? "Se insertaron datos correctamente." : "No se insertaron datos.");
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show("Error: " + ex.Message);
+        //    }
+        //}
         public void GetRowsInfo(Dictionary<string, object> columnValues, DataGridView dgvDataSource)
         {
             DataGridViewRow currentRow = dgvDataSource.CurrentRow;

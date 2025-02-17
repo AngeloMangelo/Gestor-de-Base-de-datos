@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Drawing;
 using System.IO;
@@ -39,14 +40,17 @@ namespace BaseDeDatosSQL
             sNombre = userdata.Usuario;
             sContraseña = userdata.Contraseña;
             sServidor = userdata.Servidor;
+            sGestor = userdata.SistemaGestor;
 
-            SqlConnection conexion = new SqlConnection(accesoSQLServer.GetDBConnection(sServidor, sNombre, sContraseña));
-            
+            //SqlConnection conexion = new SqlConnection(accesoSQLServer.GetDBConnection(sGestor, sServidor, sNombre, sContraseña));
+            DbConnection conexion = accesoSQLServer.GetDBConnection(sGestor, sServidor, sNombre, sContraseña);
+
+
             treeViewAsistente.ShowPlusMinus = true;  // Muestra los botones de expansión
             treeViewAsistente.ShowRootLines = true;  // Muestra las líneas de expansión en el nodo raíz (opcional)
             treeViewAsistente.Font = new Font(treeViewAsistente.Font, FontStyle.Bold);
 
-            accesoSQLServer.CargarServidores(treeViewAsistente, conexion);
+            accesoSQLServer.CargarServidores(treeViewAsistente, conexion, sGestor);
         }
         private void treeViewAsistente_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
@@ -160,9 +164,9 @@ namespace BaseDeDatosSQL
             sContraseña = userdata.Contraseña;
             sServidor = userdata.Servidor;
 
-            SqlConnection conexion = new SqlConnection(accesoSQLServer.GetDBConnection(sServidor, sNombre, sContraseña));
+            DbConnection conexion = accesoSQLServer.GetDBConnection(sGestor, sServidor, sNombre, sContraseña);
 
-            accesoSQLServer.CargarServidores(treeViewAsistente, conexion);
+            accesoSQLServer.CargarServidores(treeViewAsistente, conexion, sGestor);
         }
 
         private void treeViewAsistente_MouseClick(object sender, MouseEventArgs e)
