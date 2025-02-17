@@ -99,7 +99,17 @@ namespace BaseDeDatosSQL
             }
             else if (sGestor == "Firebird")
             {
-                MessageBox.Show("Error: No se ha implementado la conexión a Firebird", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (!acceso.SiHayConexionFirebird(userdata.Servidor, userdata.Usuario, userdata.Contraseña))
+                {
+                    MessageBox.Show("Error: " + acceso.sLastError, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                    bLoginIsCorrect = false;
+                }
+                else
+                {
+                    bLoginIsCorrect = true;
+                    this.Close();
+                }
             }
             else
             {
@@ -147,6 +157,8 @@ namespace BaseDeDatosSQL
             else if (cbMotorDB.SelectedIndex == 4)
             {
                 tbServidor.Text = "localhost";
+                tbUsuario.Text = "SYSDBA";
+                tbContraseña.Text = "12345";
             }
 
         }

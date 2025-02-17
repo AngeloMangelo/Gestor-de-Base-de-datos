@@ -16,6 +16,7 @@ using MySql.Data.MySqlClient;
 using FirebirdSql.Data.FirebirdClient;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
+using System.Diagnostics.Contracts;
 
 namespace Reglas_de_Negocio
 {
@@ -23,6 +24,9 @@ namespace Reglas_de_Negocio
     {
         public String sLastError = string.Empty;
         public SqlException lastsqlException = null;
+        public static string sRutaBD;
+
+        //El cerebro de las conexiones a los sitemas Gestores de Datos :O!
         public DbConnection GetDBConnection(string gestor, string servidor, string usuario, string contraseña)
         {
             DbConnection conexion;
@@ -42,7 +46,7 @@ namespace Reglas_de_Negocio
                     conexion = new OracleConnection($"Data Source={servidor};User Id={usuario};Password={contraseña};");
                     break;
                 case "firebird":
-                    conexion = new FbConnection($"User={usuario};Password={contraseña};DataSource={servidor};Port=3050;Dialect=3;Charset=UTF8;");
+                    conexion = new FbConnection($"DataSource={servidor};Database={AccesoSQLServer.sRutaBD};User={usuario};Password={contraseña};Charset=UTF8;");
                     break;
                 default:
                     throw new ArgumentException("Sistema gestor no soportado");
@@ -58,6 +62,8 @@ namespace Reglas_de_Negocio
         //    string sSQLConexion = $"Data Source={sServidor};Initial Catalog=master;User ID={sUsuario};Password={sContraseña};MultipleActiveResultSets=true;";
         //    return sSQLConexion;
         //}
+
+
         public string GetCustomSQLConnection(string sServidor, string sUsuario, string sContraseña, string database)
         {
             string sSQLConexion = $"Data Source={sServidor};Initial Catalog={database};User ID={sUsuario};Password={sContraseña};MultipleActiveResultSets=true;";
@@ -149,6 +155,66 @@ namespace Reglas_de_Negocio
 
             return bAllOk;
         }
+        
+        //comprobar conexion en firebird
+        public Boolean SiHayConexionFirebird(string sServidor, string sUsuario, string sContraseña)//<-- para firebir es necesario especificar la ruta de la base de datos.
+        {
+            Boolean bAllOk = false;
+            string sBaseDatos = "";
+
+            // Detectar si el servidor es local
+            bool esLocal = (sServidor == "localhost" || sServidor == "127.0.0.1" || sServidor == "::1");
+
+            if (esLocal)
+            {
+                // Mostrar diálogo para que el usuario seleccione la base de datos
+                using (OpenFileDialog ofd = new OpenFileDialog())
+                {
+                    ofd.Filter = "Archivos Firebird (*.fdb)|*.fdb";
+                    ofd.Title = "Seleccione la base de datos Firebird";
+
+                    if (ofd.ShowDialog() == DialogResult.OK)
+                    {
+                        sBaseDatos = ofd.FileName;
+                    }
+                    else
+                    {
+                        return false; 
+                    }
+                }
+            }
+            else
+            {
+                // Para servidor remoto, pedir la ruta manualmente
+                sBaseDatos = Microsoft.VisualBasic.Interaction.InputBox("Ingrese la ruta de la base de datos en el servidor:", "Ruta de Base de Datos", "/ruta/remota/database.fdb");
+
+                if (string.IsNullOrWhiteSpace(sBaseDatos))
+                    return false; 
+            }
+
+
+            string conexion = $"DataSource={sServidor};Database={sBaseDatos};User={sUsuario};Password={sContraseña};Charset=UTF8;";
+            sRutaBD = sBaseDatos;
+
+            using (FbConnection conn = new FbConnection(conexion))
+            {
+                try
+                {
+                    conn.Open();
+                    conn.Close();
+                    bAllOk = true;
+                }
+                catch (Exception ex)
+                {
+                    sLastError = ex.Message;
+
+                    bAllOk = false;
+                }
+            }
+
+            return bAllOk;
+        }
+
 
 
         public bool ExcecuteQuery(string query, SqlConnection connection)
@@ -168,6 +234,8 @@ namespace Reglas_de_Negocio
             connection.Close();
             return bAllOk;
         }
+
+
 
         public void CargarBasesdeDatos(string sGestor, string sServidor, string sUsuario, string sContraseña, TreeView tv)
         {
@@ -283,7 +351,12 @@ namespace Reglas_de_Negocio
                         break;
 
                     case "firebird":
-                        throw new NotImplementedException("Cargar bases de datos en Firebird aún no está soportado.");
+                        using (FbCommand cmd = new FbCommand("SELECT MON$DATABASE_NAME FROM MON$DATABASE", (FbConnection)conexion))
+                        using (FbDataAdapter adapter = new FbDataAdapter(cmd))
+                        {
+                            adapter.Fill(databases);
+                        }
+                        break;
 
                     default:
                         throw new ArgumentException("Sistema gestor no soportado");
