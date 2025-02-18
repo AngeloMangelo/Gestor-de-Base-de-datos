@@ -155,19 +155,45 @@ namespace Reglas_de_Negocio
 
             return bAllOk;
         }
-        
+
+        // Comprobar conexión a Oracle
+
+        public Boolean SiHayConexionOracle(string sServidor, string sUsuario, string sContraseña)
+        {
+            Boolean bAllOk = false;
+
+            string conexion = $"Data Source={sServidor};User Id={sUsuario};Password={sContraseña};";
+
+            using (OracleConnection conn = new OracleConnection(conexion))
+            {
+                try
+                {
+                    conn.Open();
+                    conn.Close();
+
+                    bAllOk = true;
+                }
+                catch (Exception ex)
+                {
+                    sLastError = ex.Message;
+                    bAllOk = false;
+                }
+            }
+
+            return bAllOk;
+        }
+
+
         //comprobar conexion en firebird
         public Boolean SiHayConexionFirebird(string sServidor, string sUsuario, string sContraseña)//<-- para firebir es necesario especificar la ruta de la base de datos.
         {
             Boolean bAllOk = false;
             string sBaseDatos = "";
 
-            // Detectar si el servidor es local
             bool esLocal = (sServidor == "localhost" || sServidor == "127.0.0.1" || sServidor == "::1");
 
             if (esLocal)
             {
-                // Mostrar diálogo para que el usuario seleccione la base de datos
                 using (OpenFileDialog ofd = new OpenFileDialog())
                 {
                     ofd.Filter = "Archivos Firebird (*.fdb)|*.fdb";
@@ -185,7 +211,6 @@ namespace Reglas_de_Negocio
             }
             else
             {
-                // Para servidor remoto, pedir la ruta manualmente
                 sBaseDatos = Microsoft.VisualBasic.Interaction.InputBox("Ingrese la ruta de la base de datos en el servidor:", "Ruta de Base de Datos", "/ruta/remota/database.fdb");
 
                 if (string.IsNullOrWhiteSpace(sBaseDatos))
@@ -343,7 +368,7 @@ namespace Reglas_de_Negocio
                         break;
 
                     case "oracle":
-                        using (OracleCommand cmd = new OracleCommand("SELECT username FROM all_users", (OracleConnection)conexion))
+                        using (OracleCommand cmd = new OracleCommand("SELECT DISTINCT OWNER FROM dba_segments", (OracleConnection)conexion))
                         using (OracleDataAdapter adapter = new OracleDataAdapter(cmd))
                         {
                             adapter.Fill(databases);

@@ -95,7 +95,17 @@ namespace BaseDeDatosSQL
             }
             else if (sGestor == "Oracle")
             {
-                MessageBox.Show("Error: No se ha implementado la conexión a Oracle", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (!acceso.SiHayConexionOracle(userdata.Servidor, userdata.Usuario, userdata.Contraseña))
+                {
+                    MessageBox.Show("Error: " + acceso.sLastError, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                    bLoginIsCorrect = false;
+                }
+                else
+                {
+                    bLoginIsCorrect = true;
+                    this.Close();
+                }
             }
             else if (sGestor == "Firebird")
             {
@@ -152,6 +162,8 @@ namespace BaseDeDatosSQL
             else if (cbMotorDB.SelectedIndex == 3)
             {
                 tbServidor.Text = "localhost";
+                tbUsuario.Text = "system";
+                tbContraseña.Text = "12345";
             }
             //Firebird
             else if (cbMotorDB.SelectedIndex == 4)
