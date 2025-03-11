@@ -16,12 +16,14 @@ namespace BaseDeDatosSQL
     public partial class Login : Form
     {
         public Boolean bLoginIsCorrect = false;
+        public Boolean bSesionIniciada = false;
         public Userdata userdata;
+
 
         public Login()
         {
             InitializeComponent();
-            
+
         }
 
         private void Login_Load(object sender, EventArgs e)
@@ -62,6 +64,7 @@ namespace BaseDeDatosSQL
                 else
                 {
                     bLoginIsCorrect = true;
+                    bSesionIniciada = true;
                     this.Close();
                 }
             }
@@ -70,12 +73,13 @@ namespace BaseDeDatosSQL
                 if (!acceso.SiHayConexionMySQL(userdata.Servidor, userdata.Usuario, userdata.Contraseña))
                 {
                     MessageBox.Show("Error: " + acceso.sLastError, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                 
+
                     bLoginIsCorrect = false;
                 }
                 else
                 {
                     bLoginIsCorrect = true;
+                    bSesionIniciada = true;
                     this.Close();
                 }
             }
@@ -90,6 +94,7 @@ namespace BaseDeDatosSQL
                 else
                 {
                     bLoginIsCorrect = true;
+                    bSesionIniciada = true;
                     this.Close();
                 }
             }
@@ -104,6 +109,7 @@ namespace BaseDeDatosSQL
                 else
                 {
                     bLoginIsCorrect = true;
+                    bSesionIniciada = true;
                     this.Close();
                 }
             }
@@ -118,6 +124,7 @@ namespace BaseDeDatosSQL
                 else
                 {
                     bLoginIsCorrect = true;
+                    bSesionIniciada = true;
                     this.Close();
                 }
             }
@@ -127,7 +134,7 @@ namespace BaseDeDatosSQL
                 return;
             }
 
-            
+
         }
 
         private void label1_Click(object sender, EventArgs e)

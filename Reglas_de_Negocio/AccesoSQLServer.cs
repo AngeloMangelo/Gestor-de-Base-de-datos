@@ -392,6 +392,117 @@ namespace Reglas_de_Negocio
                     string dbName = database[0].ToString();
                     TreeNode dbNode = new TreeNode(dbName) { Tag = "BaseDeDatos" };
                     serverNode.Nodes.Add(dbNode);
+
+                    // Cargar tablas de la base de datos
+                    DataTable tables = new DataTable();
+                    switch (gestor.ToLower())
+                    {
+                        case "sqlserver":
+                            using (var cmd = conexion.CreateCommand())
+                            {
+                                cmd.CommandText = $"USE [{dbName}]; SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';";
+                                using (var adapter = new SqlDataAdapter((SqlCommand)cmd))
+                                {
+                                    adapter.Fill(tables);
+                                }
+                            }
+                            break;
+
+                        case "mysql":
+                            using (var cmd = new MySqlCommand($"USE `{dbName}`; SHOW TABLES;", (MySqlConnection)conexion))
+                            using (var adapter = new MySqlDataAdapter(cmd))
+                            {
+                                adapter.Fill(tables);
+                            }
+                            break;
+
+                        case "postgresql":
+                            using (var cmd = new NpgsqlCommand($"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';", (NpgsqlConnection)conexion))
+                            using (var adapter = new NpgsqlDataAdapter(cmd))
+                            {
+                                adapter.Fill(tables);
+                            }
+                            break;
+
+                        case "oracle":
+                            using (var cmd = new OracleCommand($"SELECT table_name FROM all_tables WHERE owner = '{dbName}'", (OracleConnection)conexion))
+                            using (var adapter = new OracleDataAdapter(cmd))
+                            {
+                                adapter.Fill(tables);
+                            }
+                            break;
+
+                        case "firebird":
+                            using (var cmd = new FbCommand($"SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0;", (FbConnection)conexion))
+                            using (var adapter = new FbDataAdapter(cmd))
+                            {
+                                adapter.Fill(tables);
+                            }
+                            break;
+                    }
+
+                    foreach (DataRow table in tables.Rows)
+                    {
+                        string tableName = table[0].ToString();
+                        TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
+                        dbNode.Nodes.Add(tableNode);
+
+                        // Cargar columnas de la tabla
+                        DataTable columns = new DataTable();
+                        switch (gestor.ToLower())
+                        {
+                            case "sqlserver":
+                                using (var cmd = conexion.CreateCommand())
+                                {
+                                    cmd.CommandText = $"USE [{dbName}]; SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{tableName}';";
+                                    using (var adapter = new SqlDataAdapter((SqlCommand)cmd))
+                                    {
+                                        adapter.Fill(columns);
+                                    }
+                                }
+                                break;
+
+                            case "mysql":
+                                using (var cmd = new MySqlCommand($"USE `{dbName}`; SHOW COLUMNS FROM `{tableName}`;", (MySqlConnection)conexion))
+                                using (var adapter = new MySqlDataAdapter(cmd))
+                                {
+                                    adapter.Fill(columns);
+                                }
+                                break;
+
+                            case "postgresql":
+                                using (var cmd = new NpgsqlCommand($"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{tableName}';", (NpgsqlConnection)conexion))
+                                using (var adapter = new NpgsqlDataAdapter(cmd))
+                                {
+                                    adapter.Fill(columns);
+                                }
+                                break;
+
+                            case "oracle":
+                                using (var cmd = new OracleCommand($"SELECT column_name, data_type FROM all_tab_columns WHERE table_name = '{tableName}' AND owner = '{dbName}'", (OracleConnection)conexion))
+                                using (var adapter = new OracleDataAdapter(cmd))
+                                {
+                                    adapter.Fill(columns);
+                                }
+                                break;
+
+                            case "firebird":
+                                using (var cmd = new FbCommand($"SELECT RDB$FIELD_NAME, RDB$FIELD_TYPE FROM RDB$RELATION_FIELDS WHERE RDB$RELATION_NAME = '{tableName}';", (FbConnection)conexion))
+                                using (var adapter = new FbDataAdapter(cmd))
+                                {
+                                    adapter.Fill(columns);
+                                }
+                                break;
+                        }
+
+                        foreach (DataRow column in columns.Rows)
+                        {
+                            string columnName = column[0].ToString();
+                            string dataType = column[1].ToString();
+                            TreeNode columnNode = new TreeNode($"{columnName} ({dataType})") { Tag = "Columna" };
+                            tableNode.Nodes.Add(columnNode);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -403,7 +514,6 @@ namespace Reglas_de_Negocio
                 conexion.Close();
             }
         }
-
         public void BasedeDatosEnComboBox(System.Windows.Forms.ComboBox comboBox, SqlConnection conexion)
         {
             try

@@ -224,7 +224,18 @@ namespace BaseDeDatosSQL
 
         private void Sistema_FormClosed(object sender, FormClosedEventArgs e)
         {
-            Application.Restart();
+            Application.Exit(); 
+        }
+
+        private void btnEjecutarQuery_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnNuevaConexion_Click(object sender, EventArgs e)
+        {
+            Login login = new Login();
+            login.ShowDialog();
         }
     }
 }
