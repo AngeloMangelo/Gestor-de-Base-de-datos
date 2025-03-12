@@ -236,6 +236,7 @@ namespace BaseDeDatosSQL
         {
             Login login = new Login();
             login.ShowDialog();
+            //hola
         }
     }
 }
