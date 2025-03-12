@@ -50,6 +50,7 @@
             this.treeViewAsistente.Size = new System.Drawing.Size(271, 349);
             this.treeViewAsistente.TabIndex = 0;
             this.treeViewAsistente.BeforeExpand += new System.Windows.Forms.TreeViewCancelEventHandler(this.treeViewAsistente_BeforeExpand);
+            this.treeViewAsistente.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeViewAsistente_AfterSelect);
             this.treeViewAsistente.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeViewAsistente_NodeMouseClick);
             this.treeViewAsistente.MouseClick += new System.Windows.Forms.MouseEventHandler(this.treeViewAsistente_MouseClick);
             // 
@@ -130,6 +131,7 @@
             // 
             // cbBaseDeDatos
             // 
+            this.cbBaseDeDatos.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbBaseDeDatos.FormattingEnabled = true;
             this.cbBaseDeDatos.Location = new System.Drawing.Point(352, 22);
             this.cbBaseDeDatos.Name = "cbBaseDeDatos";

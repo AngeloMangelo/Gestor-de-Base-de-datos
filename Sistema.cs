@@ -17,6 +17,7 @@ namespace BaseDeDatosSQL
 {
     public partial class Sistema : Form
     {
+
         private Userdata userdata; // Variable para almacenar la instancia de UserData
         AccesoSQLServer accesoSQLServer = new AccesoSQLServer();
         private string sNombre;    // Variable para almacenar el nombre de usuario
@@ -37,6 +38,8 @@ namespace BaseDeDatosSQL
 
         private void Sistema_Load(object sender, EventArgs e)
         {
+            treeViewAsistente.AfterSelect += treeViewAsistente_AfterSelect;
+
             sNombre = userdata.Usuario;
             sContraseña = userdata.Contraseña;
             sServidor = userdata.Servidor;
@@ -229,6 +232,7 @@ namespace BaseDeDatosSQL
 
         private void btnEjecutarQuery_Click(object sender, EventArgs e)
         {
+            string query = rtbQuery.Text;
 
         }
 
@@ -239,7 +243,6 @@ namespace BaseDeDatosSQL
 
             if (login.bSesionIniciada)
             {
-                // Obtener la nueva conexión desde el login
                 Userdata nuevaConexionUserdata = login.userdata;
 
                 // Crear la conexión según el gestor seleccionado
@@ -252,6 +255,37 @@ namespace BaseDeDatosSQL
 
                 // Agregar la nueva conexión al TreeView sin limpiar las conexiones existentes
                 accesoSQLServer.CargarServidores(treeViewAsistente, nuevaConexion, nuevaConexionUserdata.SistemaGestor, false);
+            }
+        }
+
+        private void treeViewAsistente_AfterSelect(object sender, TreeViewEventArgs e)
+        {
+            cbBaseDeDatos.Items.Clear();
+
+            TreeNode selectedNode = e.Node;
+            if (selectedNode == null)
+                return;
+
+            // Si el nodo seleccionado es una base de datos, usamos su nodo padre (el servidor)
+            if (selectedNode.Tag != null && selectedNode.Tag.ToString() == "BaseDeDatos")
+            {
+                selectedNode = selectedNode.Parent;
+            }
+
+            // Asumimos que el nodo servidor no tiene Tag o tiene un Tag diferente a "BaseDeDatos"
+            if (selectedNode != null)
+            {
+                // Recorremos los nodos hijos (que deben ser las bases de datos)
+                foreach (TreeNode child in selectedNode.Nodes)
+                {
+                    if (child.Tag != null && child.Tag.ToString() == "BaseDeDatos")
+                    {
+                        cbBaseDeDatos.Items.Add(child.Text);
+                    }
+                }
+
+                if (cbBaseDeDatos.Items.Count > 0)
+                    cbBaseDeDatos.SelectedIndex = 0;
             }
         }
     }
