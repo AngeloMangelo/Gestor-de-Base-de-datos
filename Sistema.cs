@@ -236,7 +236,23 @@ namespace BaseDeDatosSQL
         {
             Login login = new Login();
             login.ShowDialog();
-            //hola
+
+            if (login.bSesionIniciada)
+            {
+                // Obtener la nueva conexión desde el login
+                Userdata nuevaConexionUserdata = login.userdata;
+
+                // Crear la conexión según el gestor seleccionado
+                DbConnection nuevaConexion = accesoSQLServer.GetDBConnection(
+                    nuevaConexionUserdata.SistemaGestor,
+                    nuevaConexionUserdata.Servidor,
+                    nuevaConexionUserdata.Usuario,
+                    nuevaConexionUserdata.Contraseña
+                );
+
+                // Agregar la nueva conexión al TreeView sin limpiar las conexiones existentes
+                accesoSQLServer.CargarServidores(treeViewAsistente, nuevaConexion, nuevaConexionUserdata.SistemaGestor, false);
+            }
         }
     }
 }

@@ -55,15 +55,6 @@ namespace Reglas_de_Negocio
             return conexion;
         }
 
-        //This function is now deprecated :)
-
-        //public string GetDBConnection(string sServidor, string sUsuario, string sContraseña)
-        //{
-        //    string sSQLConexion = $"Data Source={sServidor};Initial Catalog=master;User ID={sUsuario};Password={sContraseña};MultipleActiveResultSets=true;";
-        //    return sSQLConexion;
-        //}
-
-
         public string GetCustomSQLConnection(string sServidor, string sUsuario, string sContraseña, string database)
         {
             string sSQLConexion = $"Data Source={sServidor};Initial Catalog={database};User ID={sUsuario};Password={sContraseña};MultipleActiveResultSets=true;";
@@ -334,10 +325,14 @@ namespace Reglas_de_Negocio
             }
         }
         //version nueva de la carga de base de datos DEPENDIENDO DEL SISTEMA GESTOR DE BASE DE DATOS
-        public void CargarServidores(System.Windows.Forms.TreeView treeView, DbConnection conexion, string gestor)
+        public void CargarServidores(TreeView treeView, DbConnection conexion, string gestor, bool clearTreeView = true)
         {
-            treeView.Nodes.Clear();
-            TreeNode serverNode = new TreeNode(conexion.Database);
+            if (clearTreeView)
+                treeView.Nodes.Clear();
+
+            // Creamos un nodo raíz para esta conexión.
+            // Por ejemplo, podemos mostrar el nombre del gestor y la base (o servidor)
+            TreeNode serverNode = new TreeNode($"{gestor} - {conexion.Database}");
             treeView.Nodes.Add(serverNode);
 
             try
@@ -350,7 +345,6 @@ namespace Reglas_de_Negocio
                     case "sqlserver":
                         databases = conexion.GetSchema("Databases");
                         break;
-
                     case "mysql":
                         using (MySqlCommand cmd = new MySqlCommand("SHOW DATABASES", (MySqlConnection)conexion))
                         using (MySqlDataAdapter adapter = new MySqlDataAdapter(cmd))
@@ -358,7 +352,6 @@ namespace Reglas_de_Negocio
                             adapter.Fill(databases);
                         }
                         break;
-
                     case "postgresql":
                         using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT datname FROM pg_database WHERE datistemplate = false;", (NpgsqlConnection)conexion))
                         using (NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(cmd))
@@ -366,7 +359,6 @@ namespace Reglas_de_Negocio
                             adapter.Fill(databases);
                         }
                         break;
-
                     case "oracle":
                         using (OracleCommand cmd = new OracleCommand("SELECT DISTINCT OWNER FROM dba_segments", (OracleConnection)conexion))
                         using (OracleDataAdapter adapter = new OracleDataAdapter(cmd))
@@ -374,7 +366,6 @@ namespace Reglas_de_Negocio
                             adapter.Fill(databases);
                         }
                         break;
-
                     case "firebird":
                         using (FbCommand cmd = new FbCommand("SELECT MON$DATABASE_NAME FROM MON$DATABASE", (FbConnection)conexion))
                         using (FbDataAdapter adapter = new FbDataAdapter(cmd))
@@ -382,11 +373,11 @@ namespace Reglas_de_Negocio
                             adapter.Fill(databases);
                         }
                         break;
-
                     default:
                         throw new ArgumentException("Sistema gestor no soportado");
                 }
 
+                // Recorremos las bases de datos obtenidas y las agregamos como nodos secundarios
                 foreach (DataRow database in databases.Rows)
                 {
                     string dbName = database[0].ToString();
@@ -407,7 +398,6 @@ namespace Reglas_de_Negocio
                                 }
                             }
                             break;
-
                         case "mysql":
                             using (var cmd = new MySqlCommand($"USE `{dbName}`; SHOW TABLES;", (MySqlConnection)conexion))
                             using (var adapter = new MySqlDataAdapter(cmd))
@@ -415,7 +405,6 @@ namespace Reglas_de_Negocio
                                 adapter.Fill(tables);
                             }
                             break;
-
                         case "postgresql":
                             using (var cmd = new NpgsqlCommand($"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';", (NpgsqlConnection)conexion))
                             using (var adapter = new NpgsqlDataAdapter(cmd))
@@ -423,7 +412,6 @@ namespace Reglas_de_Negocio
                                 adapter.Fill(tables);
                             }
                             break;
-
                         case "oracle":
                             using (var cmd = new OracleCommand($"SELECT table_name FROM all_tables WHERE owner = '{dbName}'", (OracleConnection)conexion))
                             using (var adapter = new OracleDataAdapter(cmd))
@@ -431,7 +419,6 @@ namespace Reglas_de_Negocio
                                 adapter.Fill(tables);
                             }
                             break;
-
                         case "firebird":
                             using (var cmd = new FbCommand($"SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0;", (FbConnection)conexion))
                             using (var adapter = new FbDataAdapter(cmd))
@@ -461,7 +448,6 @@ namespace Reglas_de_Negocio
                                     }
                                 }
                                 break;
-
                             case "mysql":
                                 using (var cmd = new MySqlCommand($"USE `{dbName}`; SHOW COLUMNS FROM `{tableName}`;", (MySqlConnection)conexion))
                                 using (var adapter = new MySqlDataAdapter(cmd))
@@ -469,7 +455,6 @@ namespace Reglas_de_Negocio
                                     adapter.Fill(columns);
                                 }
                                 break;
-
                             case "postgresql":
                                 using (var cmd = new NpgsqlCommand($"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{tableName}';", (NpgsqlConnection)conexion))
                                 using (var adapter = new NpgsqlDataAdapter(cmd))
@@ -477,7 +462,6 @@ namespace Reglas_de_Negocio
                                     adapter.Fill(columns);
                                 }
                                 break;
-
                             case "oracle":
                                 using (var cmd = new OracleCommand($"SELECT column_name, data_type FROM all_tab_columns WHERE table_name = '{tableName}' AND owner = '{dbName}'", (OracleConnection)conexion))
                                 using (var adapter = new OracleDataAdapter(cmd))
@@ -485,7 +469,6 @@ namespace Reglas_de_Negocio
                                     adapter.Fill(columns);
                                 }
                                 break;
-
                             case "firebird":
                                 using (var cmd = new FbCommand($"SELECT RDB$FIELD_NAME, RDB$FIELD_TYPE FROM RDB$RELATION_FIELDS WHERE RDB$RELATION_NAME = '{tableName}';", (FbConnection)conexion))
                                 using (var adapter = new FbDataAdapter(cmd))
@@ -514,6 +497,7 @@ namespace Reglas_de_Negocio
                 conexion.Close();
             }
         }
+
         public void BasedeDatosEnComboBox(System.Windows.Forms.ComboBox comboBox, SqlConnection conexion)
         {
             try
