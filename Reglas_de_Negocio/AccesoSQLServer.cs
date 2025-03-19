@@ -19,6 +19,8 @@ using Oracle.ManagedDataAccess.Client;
 using System.Diagnostics.Contracts;
 using FirebirdSql.Data.Services;
 using BaseDeDatosSQL;
+using Microsoft.VisualBasic.ApplicationServices;
+using Org.BouncyCastle.Tls;
 
 namespace Reglas_de_Negocio
 {
@@ -45,7 +47,8 @@ namespace Reglas_de_Negocio
                     conexion = new NpgsqlConnection($"Host={servidor};Username={usuario};Password={contraseña};Database={Database}");
                     break;
                 case "oracle":
-                    conexion = new OracleConnection($"Data Source={servidor};User Id={usuario};Password={contraseña};");
+                    conexion = new OracleConnection($"User Id={usuario};Password={contraseña};Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={servidor})(PORT=1521))(CONNECT_DATA=(SID=XE)))");
+                    //conexion = new OracleConnection($"Data Source={servidor};User Id={usuario};Password={contraseña};");
                     break;
                 case "firebird":
                     conexion = new FbConnection($"DataSource={servidor};Database={AccesoSQLServer.sRutaBD};User={usuario};Password={contraseña};Charset=UTF8;");
@@ -333,157 +336,43 @@ namespace Reglas_de_Negocio
             if (clearTreeView)
                 treeView.Nodes.Clear();
 
+            // Crear el nodo raíz del servidor
             string nombreNodo = userdata != null ? $"{userdata.SistemaGestor} - {userdata.Servidor}" : $"{gestor} - {conexion.Database}";
-
             TreeNode serverNode = new TreeNode(nombreNodo)
             {
-                Tag = userdata
+                Tag = userdata // Almacenar Userdata en el Tag del nodo raíz
             };
             treeView.Nodes.Add(serverNode);
 
             try
             {
                 conexion.Open();
-                DataTable databases = new DataTable();
 
+                // Cargar bases de datos o esquemas según el gestor
                 switch (gestor.ToLower())
                 {
                     case "sqlserver":
-                        databases = conexion.GetSchema("Databases");
+                        CargarBasesDeDatosSQLServer(conexion, serverNode);
                         break;
+
                     case "mysql":
-                        using (MySqlCommand cmd = new MySqlCommand("SHOW DATABASES", (MySqlConnection)conexion))
-                        using (MySqlDataAdapter adapter = new MySqlDataAdapter(cmd))
-                        {
-                            adapter.Fill(databases);
-                        }
+                        CargarBasesDeDatosMySQL(conexion, serverNode);
                         break;
+
                     case "postgresql":
-                        using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT datname FROM pg_database WHERE datistemplate = false;", (NpgsqlConnection)conexion))
-                        using (NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(cmd))
-                        {
-                            adapter.Fill(databases);
-                        }
+                        CargarBasesDeDatosPostgreSQL(conexion, serverNode);
                         break;
+
                     case "oracle":
-                        using (OracleCommand cmd = new OracleCommand("SELECT instance_name, host_name FROM v$instance", (OracleConnection)conexion))
-                        using (OracleDataAdapter adapter = new OracleDataAdapter(cmd))
-                        {
-                            DataTable instances = new DataTable();
-                            adapter.Fill(instances);
-
-                            foreach (DataRow row in instances.Rows)
-                            {
-                                string instanceName = row["instance_name"].ToString();
-                                string hostName = row["host_name"].ToString();
-                                TreeNode instanceNode = new TreeNode($"Instancia: {instanceName} (Host: {hostName})");
-                                serverNode.Nodes.Add(instanceNode);
-
-                                // Obtener Schemas (Usuarios de BD)
-                                using (OracleCommand cmdDB = new OracleCommand("SELECT USERNAME FROM all_users ORDER BY USERNAME", (OracleConnection)conexion))
-                                using (OracleDataAdapter adapterDB = new OracleDataAdapter(cmdDB))
-                                {
-                                    DataTable schemas = new DataTable();
-                                    adapterDB.Fill(schemas);
-
-                                    foreach (DataRow schemaRow in schemas.Rows)
-                                    {
-                                        string schemaName = schemaRow["USERNAME"].ToString();
-                                        TreeNode schemaNode = new TreeNode($"Schema: {schemaName}") { Tag = "BaseDeDatos" };
-                                        instanceNode.Nodes.Add(schemaNode);
-                                    }
-                                }
-                            }
-                        }
+                        CargarBasesDeDatosOracle(conexion, serverNode);
                         break;
 
                     case "firebird":
-                        // En Firebird, cada conexión es una base de datos, no se pueden listar como en otros gestores.
-                        TreeNode firebirdNode = new TreeNode($"Firebird - {conexion.Database}") { Tag = "BaseDeDatos" };
-                        serverNode.Nodes.Add(firebirdNode);
-
-                        try
-                        {
-                            using (FbCommand cmd = new FbCommand("SELECT TRIM(RDB$RELATION_NAME) AS TABLE_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0;", (FbConnection)conexion))
-                            using (FbDataAdapter adapter = new FbDataAdapter(cmd))
-                            {
-                                DataTable tables = new DataTable();
-                                adapter.Fill(tables);
-
-                                foreach (DataRow tableRow in tables.Rows)
-                                {
-                                    string tableName = tableRow["TABLE_NAME"].ToString();
-                                    TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
-                                    firebirdNode.Nodes.Add(tableNode);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show("Error al cargar las tablas de Firebird: " + ex.Message);
-                        }
+                        CargarBasesDeDatosFirebird(conexion, serverNode);
                         break;
 
                     default:
                         throw new ArgumentException("Sistema gestor no soportado");
-                }
-
-                // Cargar las tablas y columnas
-                foreach (DataRow database in databases.Rows)
-                {
-                    string dbName = database[0].ToString();
-                    TreeNode dbNode = new TreeNode(dbName) { Tag = "BaseDeDatos" };
-                    serverNode.Nodes.Add(dbNode);
-
-                    DataTable tables = new DataTable();
-                    switch (gestor.ToLower())
-                    {
-                        case "sqlserver":
-                            using (var cmd = conexion.CreateCommand())
-                            {
-                                cmd.CommandText = $"USE [{dbName}]; SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';";
-                                using (var adapter = new SqlDataAdapter((SqlCommand)cmd))
-                                {
-                                    adapter.Fill(tables);
-                                }
-                            }
-                            break;
-                        case "mysql":
-                            using (var cmd = new MySqlCommand($"USE `{dbName}`; SHOW TABLES;", (MySqlConnection)conexion))
-                            using (var adapter = new MySqlDataAdapter(cmd))
-                            {
-                                adapter.Fill(tables);
-                            }
-                            break;
-                        case "postgresql":
-                            using (var cmd = new NpgsqlCommand($"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';", (NpgsqlConnection)conexion))
-                            using (var adapter = new NpgsqlDataAdapter(cmd))
-                            {
-                                adapter.Fill(tables);
-                            }
-                            break;
-                        case "oracle":
-                            using (var cmd = new OracleCommand($"SELECT table_name FROM all_tables WHERE owner = '{dbName}'", (OracleConnection)conexion))
-                            using (var adapter = new OracleDataAdapter(cmd))
-                            {
-                                adapter.Fill(tables);
-                            }
-                            break;
-                        case "firebird":
-                            using (var cmd = new FbCommand($"SELECT TRIM(RDB$RELATION_NAME) AS TABLE_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0;", (FbConnection)conexion))
-                            using (var adapter = new FbDataAdapter(cmd))
-                            {
-                                adapter.Fill(tables);
-                            }
-                            break;
-                    }
-
-                    foreach (DataRow table in tables.Rows)
-                    {
-                        string tableName = table[0].ToString();
-                        TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
-                        dbNode.Nodes.Add(tableNode);
-                    }
                 }
             }
             catch (Exception ex)
@@ -496,6 +385,214 @@ namespace Reglas_de_Negocio
             }
         }
 
+        // Métodos auxiliares para cada gestor de bases de datos
+
+        private void CargarBasesDeDatosSQLServer(DbConnection conexion, TreeNode serverNode)
+        {
+            DataTable databases = conexion.GetSchema("Databases");
+            foreach (DataRow database in databases.Rows)
+            {
+                string dbName = database["database_name"].ToString();
+                TreeNode dbNode = new TreeNode(dbName) { Tag = "BaseDeDatos" };
+                serverNode.Nodes.Add(dbNode);
+
+                // Cargar tablas de la base de datos
+                using (var cmd = conexion.CreateCommand())
+                {
+                    cmd.CommandText = $"USE [{dbName}]; SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';";
+                    using (var adapter = new SqlDataAdapter((SqlCommand)cmd))
+                    {
+                        DataTable tables = new DataTable();
+                        adapter.Fill(tables);
+
+                        foreach (DataRow table in tables.Rows)
+                        {
+                            string tableName = table["TABLE_NAME"].ToString();
+                            TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
+                            dbNode.Nodes.Add(tableNode);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CargarBasesDeDatosMySQL(DbConnection conexion, TreeNode serverNode)
+        {
+            using (var cmd = new MySqlCommand("SHOW DATABASES", (MySqlConnection)conexion))
+            using (var adapter = new MySqlDataAdapter(cmd))
+            {
+                DataTable databases = new DataTable();
+                adapter.Fill(databases);
+
+                foreach (DataRow database in databases.Rows)
+                {
+                    string dbName = database[0].ToString();
+                    TreeNode dbNode = new TreeNode(dbName) { Tag = "BaseDeDatos" };
+                    serverNode.Nodes.Add(dbNode);
+
+                    // Cargar tablas de la base de datos
+                    using (var cmdTablas = new MySqlCommand($"USE `{dbName}`; SHOW TABLES;", (MySqlConnection)conexion))
+                    using (var adapterTablas = new MySqlDataAdapter(cmdTablas))
+                    {
+                        DataTable tables = new DataTable();
+                        adapterTablas.Fill(tables);
+
+                        foreach (DataRow table in tables.Rows)
+                        {
+                            string tableName = table[0].ToString();
+                            TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
+                            dbNode.Nodes.Add(tableNode);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CargarBasesDeDatosPostgreSQL(DbConnection conexion, TreeNode serverNode)
+        {
+            using (var cmd = new NpgsqlCommand("SELECT datname FROM pg_database WHERE datistemplate = false;", (NpgsqlConnection)conexion))
+            using (var adapter = new NpgsqlDataAdapter(cmd))
+            {
+                DataTable databases = new DataTable();
+                adapter.Fill(databases);
+
+                foreach (DataRow database in databases.Rows)
+                {
+                    string dbName = database["datname"].ToString();
+                    TreeNode dbNode = new TreeNode(dbName) { Tag = "BaseDeDatos" };
+                    serverNode.Nodes.Add(dbNode);
+
+                    // Cargar tablas de la base de datos
+                    using (var cmdTablas = new NpgsqlCommand(
+                        $"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';",
+                        (NpgsqlConnection)conexion))
+                    using (var adapterTablas = new NpgsqlDataAdapter(cmdTablas))
+                    {
+                        DataTable tables = new DataTable();
+                        adapterTablas.Fill(tables);
+
+                        foreach (DataRow table in tables.Rows)
+                        {
+                            string tableName = table["table_name"].ToString();
+                            TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
+                            dbNode.Nodes.Add(tableNode);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CargarBasesDeDatosOracle(DbConnection conexion, TreeNode serverNode)
+        {
+            using (OracleCommand cmd = new OracleCommand(
+                "SELECT name, cdb FROM v$database",
+                (OracleConnection)conexion))
+            {
+                using (OracleDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        bool esCDB = reader["cdb"].ToString() == "YES";
+                        string nombreCDB = reader["name"].ToString();
+
+                        TreeNode cdbNode = new TreeNode($"CDB: {nombreCDB}");
+                        serverNode.Nodes.Add(cdbNode);
+
+                        if (esCDB)
+                        {
+                            // Obtener PDBs
+                            using (OracleCommand cmdPDB = new OracleCommand(
+                                "SELECT name FROM v$pdbs WHERE open_mode = 'READ WRITE'",
+                                (OracleConnection)conexion))
+                            using (OracleDataReader pdbReader = cmdPDB.ExecuteReader())
+                            {
+                                while (pdbReader.Read())
+                                {
+                                    string pdbName = pdbReader["name"].ToString();
+                                    TreeNode pdbNode = new TreeNode($"PDB: {pdbName}");
+                                    cdbNode.Nodes.Add(pdbNode);
+
+                                    // Conectar a la PDB para obtener esquemas
+                                    string connStringPDB = ((OracleConnection)conexion).ConnectionString
+                                        .Replace($"Service Name={nombreCDB}", $"Service Name={pdbName}");
+
+                                    using (OracleConnection pdbConnection = new OracleConnection(connStringPDB))
+                                    {
+                                        pdbConnection.Open();
+                                        CargarEsquemasOracle(pdbConnection, pdbNode);
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // No es CDB, cargar esquemas directamente
+                            CargarEsquemasOracle((OracleConnection)conexion, cdbNode);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CargarEsquemasOracle(OracleConnection conexion, TreeNode parentNode)
+        {
+            using (OracleCommand cmd = new OracleCommand(
+                "SELECT username FROM all_users WHERE username NOT IN ('SYS', 'SYSTEM') ORDER BY username",
+                conexion))
+            using (OracleDataReader reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    string schemaName = reader["username"].ToString();
+                    TreeNode schemaNode = new TreeNode($"Esquema: {schemaName}") { Tag = "Esquema" };
+                    parentNode.Nodes.Add(schemaNode);
+
+                    // Cargar tablas del esquema
+                    using (OracleCommand cmdTablas = new OracleCommand(
+                        $"SELECT table_name FROM all_tables WHERE owner = '{schemaName}'",
+                        conexion))
+                    using (OracleDataReader tablasReader = cmdTablas.ExecuteReader())
+                    {
+                        while (tablasReader.Read())
+                        {
+                            string tablaNombre = tablasReader["table_name"].ToString();
+                            TreeNode tablaNode = new TreeNode(tablaNombre) { Tag = "Tabla" };
+                            schemaNode.Nodes.Add(tablaNode);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CargarBasesDeDatosFirebird(DbConnection conexion, TreeNode serverNode)
+        {
+            // En Firebird, cada conexión es una base de datos
+            TreeNode firebirdNode = new TreeNode($"Firebird - {conexion.Database}") { Tag = "BaseDeDatos" };
+            serverNode.Nodes.Add(firebirdNode);
+
+            try
+            {
+                using (FbCommand cmd = new FbCommand(
+                    "SELECT TRIM(RDB$RELATION_NAME) AS TABLE_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0;",
+                    (FbConnection)conexion))
+                using (FbDataAdapter adapter = new FbDataAdapter(cmd))
+                {
+                    DataTable tables = new DataTable();
+                    adapter.Fill(tables);
+
+                    foreach (DataRow table in tables.Rows)
+                    {
+                        string tableName = table["TABLE_NAME"].ToString();
+                        TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
+                        firebirdNode.Nodes.Add(tableNode);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al cargar las tablas de Firebird: " + ex.Message);
+            }
+        }
         public void BasedeDatosEnComboBox(System.Windows.Forms.ComboBox comboBox, SqlConnection conexion)
         {
             try

@@ -392,7 +392,6 @@ namespace BaseDeDatosSQL
             {
                 Userdata nuevaConexionUserdata = login.userdata;
 
-                // Crear la conexión según el gestor seleccionado
                 DbConnection nuevaConexion = accesoSQLServer.GetDBConnection(
                     nuevaConexionUserdata.SistemaGestor,
                     nuevaConexionUserdata.Servidor,
@@ -400,8 +399,14 @@ namespace BaseDeDatosSQL
                     nuevaConexionUserdata.Contraseña
                 );
 
-                // Agregar la nueva conexión al TreeView sin limpiar las conexiones existentes
-                accesoSQLServer.CargarServidores(treeViewAsistente, nuevaConexion, nuevaConexionUserdata.SistemaGestor, false);
+                // Pasar "nuevaConexionUserdata" como último parámetro
+                accesoSQLServer.CargarServidores(
+                    treeViewAsistente,
+                    nuevaConexion,
+                    nuevaConexionUserdata.SistemaGestor,
+                    clearTreeView: false,
+                    userdata: nuevaConexionUserdata
+                );
             }
         }
 
