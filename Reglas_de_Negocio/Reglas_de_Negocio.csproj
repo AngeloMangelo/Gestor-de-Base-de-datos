@@ -132,5 +132,11 @@
     </None>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BaseDeDatosSQL.csproj">
+      <Project>{eac2741b-4f13-4e74-9ec2-76699eb29e37}</Project>
+      <Name>BaseDeDatosSQL</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

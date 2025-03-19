@@ -17,6 +17,8 @@ using FirebirdSql.Data.FirebirdClient;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
 using System.Diagnostics.Contracts;
+using FirebirdSql.Data.Services;
+using BaseDeDatosSQL;
 
 namespace Reglas_de_Negocio
 {
@@ -25,9 +27,9 @@ namespace Reglas_de_Negocio
         public String sLastError = string.Empty;
         public SqlException lastsqlException = null;
         public static string sRutaBD;
-
+        
         //El cerebro de las conexiones a los sitemas Gestores de Datos :O!
-        public DbConnection GetDBConnection(string gestor, string servidor, string usuario, string contraseña)
+        public DbConnection GetDBConnection(string gestor, string servidor, string usuario, string contraseña, string Database ="")
         {
             DbConnection conexion;
 
@@ -40,7 +42,7 @@ namespace Reglas_de_Negocio
                     conexion = new MySqlConnection($"Server={servidor};User ID={usuario};Password={contraseña};");
                     break;
                 case "postgresql":
-                    conexion = new NpgsqlConnection($"Host={servidor};Username={usuario};Password={contraseña};");
+                    conexion = new NpgsqlConnection($"Host={servidor};Username={usuario};Password={contraseña};Database={Database}");
                     break;
                 case "oracle":
                     conexion = new OracleConnection($"Data Source={servidor};User Id={usuario};Password={contraseña};");
@@ -54,6 +56,7 @@ namespace Reglas_de_Negocio
 
             return conexion;
         }
+
 
         public string GetCustomSQLConnection(string sServidor, string sUsuario, string sContraseña, string database)
         {
@@ -126,7 +129,7 @@ namespace Reglas_de_Negocio
         {
             Boolean bAllOk = false;
 
-            string conexion = $"Host={sServidor};Username={sUsuario};Password={sContraseña};Database=postgres;";
+            string conexion = $"Host={sServidor};Username={sUsuario};Password={sContraseña};";
 
             using (NpgsqlConnection conn = new NpgsqlConnection(conexion))
             {
@@ -325,14 +328,17 @@ namespace Reglas_de_Negocio
             }
         }
         //version nueva de la carga de base de datos DEPENDIENDO DEL SISTEMA GESTOR DE BASE DE DATOS
-        public void CargarServidores(TreeView treeView, DbConnection conexion, string gestor, bool clearTreeView = true)
+        public void CargarServidores(TreeView treeView, DbConnection conexion, string gestor, bool clearTreeView = true, Userdata userdata = null)
         {
             if (clearTreeView)
                 treeView.Nodes.Clear();
 
-            // Creamos un nodo raíz para esta conexión.
-            // Por ejemplo, podemos mostrar el nombre del gestor y la base (o servidor)
-            TreeNode serverNode = new TreeNode($"{gestor} - {conexion.Database}");
+            string nombreNodo = userdata != null ? $"{userdata.SistemaGestor} - {userdata.Servidor}" : $"{gestor} - {conexion.Database}";
+
+            TreeNode serverNode = new TreeNode(nombreNodo)
+            {
+                Tag = userdata
+            };
             treeView.Nodes.Add(serverNode);
 
             try
@@ -360,31 +366,75 @@ namespace Reglas_de_Negocio
                         }
                         break;
                     case "oracle":
-                        using (OracleCommand cmd = new OracleCommand("SELECT DISTINCT OWNER FROM dba_segments", (OracleConnection)conexion))
+                        using (OracleCommand cmd = new OracleCommand("SELECT instance_name, host_name FROM v$instance", (OracleConnection)conexion))
                         using (OracleDataAdapter adapter = new OracleDataAdapter(cmd))
                         {
-                            adapter.Fill(databases);
+                            DataTable instances = new DataTable();
+                            adapter.Fill(instances);
+
+                            foreach (DataRow row in instances.Rows)
+                            {
+                                string instanceName = row["instance_name"].ToString();
+                                string hostName = row["host_name"].ToString();
+                                TreeNode instanceNode = new TreeNode($"Instancia: {instanceName} (Host: {hostName})");
+                                serverNode.Nodes.Add(instanceNode);
+
+                                // Obtener Schemas (Usuarios de BD)
+                                using (OracleCommand cmdDB = new OracleCommand("SELECT USERNAME FROM all_users ORDER BY USERNAME", (OracleConnection)conexion))
+                                using (OracleDataAdapter adapterDB = new OracleDataAdapter(cmdDB))
+                                {
+                                    DataTable schemas = new DataTable();
+                                    adapterDB.Fill(schemas);
+
+                                    foreach (DataRow schemaRow in schemas.Rows)
+                                    {
+                                        string schemaName = schemaRow["USERNAME"].ToString();
+                                        TreeNode schemaNode = new TreeNode($"Schema: {schemaName}") { Tag = "BaseDeDatos" };
+                                        instanceNode.Nodes.Add(schemaNode);
+                                    }
+                                }
+                            }
                         }
                         break;
+
                     case "firebird":
-                        using (FbCommand cmd = new FbCommand("SELECT MON$DATABASE_NAME FROM MON$DATABASE", (FbConnection)conexion))
-                        using (FbDataAdapter adapter = new FbDataAdapter(cmd))
+                        // En Firebird, cada conexión es una base de datos, no se pueden listar como en otros gestores.
+                        TreeNode firebirdNode = new TreeNode($"Firebird - {conexion.Database}") { Tag = "BaseDeDatos" };
+                        serverNode.Nodes.Add(firebirdNode);
+
+                        try
                         {
-                            adapter.Fill(databases);
+                            using (FbCommand cmd = new FbCommand("SELECT TRIM(RDB$RELATION_NAME) AS TABLE_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0;", (FbConnection)conexion))
+                            using (FbDataAdapter adapter = new FbDataAdapter(cmd))
+                            {
+                                DataTable tables = new DataTable();
+                                adapter.Fill(tables);
+
+                                foreach (DataRow tableRow in tables.Rows)
+                                {
+                                    string tableName = tableRow["TABLE_NAME"].ToString();
+                                    TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
+                                    firebirdNode.Nodes.Add(tableNode);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show("Error al cargar las tablas de Firebird: " + ex.Message);
                         }
                         break;
+
                     default:
                         throw new ArgumentException("Sistema gestor no soportado");
                 }
 
-                // Recorremos las bases de datos obtenidas y las agregamos como nodos secundarios
+                // Cargar las tablas y columnas
                 foreach (DataRow database in databases.Rows)
                 {
                     string dbName = database[0].ToString();
                     TreeNode dbNode = new TreeNode(dbName) { Tag = "BaseDeDatos" };
                     serverNode.Nodes.Add(dbNode);
 
-                    // Cargar tablas de la base de datos
                     DataTable tables = new DataTable();
                     switch (gestor.ToLower())
                     {
@@ -420,7 +470,7 @@ namespace Reglas_de_Negocio
                             }
                             break;
                         case "firebird":
-                            using (var cmd = new FbCommand($"SELECT RDB$RELATION_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0;", (FbConnection)conexion))
+                            using (var cmd = new FbCommand($"SELECT TRIM(RDB$RELATION_NAME) AS TABLE_NAME FROM RDB$RELATIONS WHERE RDB$SYSTEM_FLAG = 0;", (FbConnection)conexion))
                             using (var adapter = new FbDataAdapter(cmd))
                             {
                                 adapter.Fill(tables);
@@ -433,58 +483,6 @@ namespace Reglas_de_Negocio
                         string tableName = table[0].ToString();
                         TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
                         dbNode.Nodes.Add(tableNode);
-
-                        // Cargar columnas de la tabla
-                        DataTable columns = new DataTable();
-                        switch (gestor.ToLower())
-                        {
-                            case "sqlserver":
-                                using (var cmd = conexion.CreateCommand())
-                                {
-                                    cmd.CommandText = $"USE [{dbName}]; SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{tableName}';";
-                                    using (var adapter = new SqlDataAdapter((SqlCommand)cmd))
-                                    {
-                                        adapter.Fill(columns);
-                                    }
-                                }
-                                break;
-                            case "mysql":
-                                using (var cmd = new MySqlCommand($"USE `{dbName}`; SHOW COLUMNS FROM `{tableName}`;", (MySqlConnection)conexion))
-                                using (var adapter = new MySqlDataAdapter(cmd))
-                                {
-                                    adapter.Fill(columns);
-                                }
-                                break;
-                            case "postgresql":
-                                using (var cmd = new NpgsqlCommand($"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{tableName}';", (NpgsqlConnection)conexion))
-                                using (var adapter = new NpgsqlDataAdapter(cmd))
-                                {
-                                    adapter.Fill(columns);
-                                }
-                                break;
-                            case "oracle":
-                                using (var cmd = new OracleCommand($"SELECT column_name, data_type FROM all_tab_columns WHERE table_name = '{tableName}' AND owner = '{dbName}'", (OracleConnection)conexion))
-                                using (var adapter = new OracleDataAdapter(cmd))
-                                {
-                                    adapter.Fill(columns);
-                                }
-                                break;
-                            case "firebird":
-                                using (var cmd = new FbCommand($"SELECT RDB$FIELD_NAME, RDB$FIELD_TYPE FROM RDB$RELATION_FIELDS WHERE RDB$RELATION_NAME = '{tableName}';", (FbConnection)conexion))
-                                using (var adapter = new FbDataAdapter(cmd))
-                                {
-                                    adapter.Fill(columns);
-                                }
-                                break;
-                        }
-
-                        foreach (DataRow column in columns.Rows)
-                        {
-                            string columnName = column[0].ToString();
-                            string dataType = column[1].ToString();
-                            TreeNode columnNode = new TreeNode($"{columnName} ({dataType})") { Tag = "Columna" };
-                            tableNode.Nodes.Add(columnNode);
-                        }
                     }
                 }
             }

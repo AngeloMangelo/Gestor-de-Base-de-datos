@@ -113,9 +113,9 @@
             // 
             // rtbQuery
             // 
-            this.rtbQuery.Location = new System.Drawing.Point(289, 51);
+            this.rtbQuery.Location = new System.Drawing.Point(289, 68);
             this.rtbQuery.Name = "rtbQuery";
-            this.rtbQuery.Size = new System.Drawing.Size(229, 260);
+            this.rtbQuery.Size = new System.Drawing.Size(229, 243);
             this.rtbQuery.TabIndex = 9;
             this.rtbQuery.Text = "";
             // 
@@ -142,7 +142,7 @@
             // 
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(300, 43);
+            this.label2.Location = new System.Drawing.Point(289, 45);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(61, 20);
             this.label2.TabIndex = 12;

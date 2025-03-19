@@ -10,6 +10,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using FirebirdSql.Data.FirebirdClient;
+using MySql.Data.MySqlClient;
+using Npgsql;
+using Oracle.ManagedDataAccess.Client;
 using Reglas_de_Negocio;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
@@ -53,7 +57,7 @@ namespace BaseDeDatosSQL
             treeViewAsistente.ShowRootLines = true;  // Muestra las líneas de expansión en el nodo raíz (opcional)
             treeViewAsistente.Font = new Font(treeViewAsistente.Font, FontStyle.Bold);
 
-            accesoSQLServer.CargarServidores(treeViewAsistente, conexion, sGestor);
+            accesoSQLServer.CargarServidores(treeViewAsistente, conexion, sGestor, true, userdata);
         }
         private void treeViewAsistente_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
@@ -232,9 +236,152 @@ namespace BaseDeDatosSQL
 
         private void btnEjecutarQuery_Click(object sender, EventArgs e)
         {
+            // Obtener el query escrito en el RichTextBox
             string query = rtbQuery.Text;
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                MessageBox.Show("Por favor, escribe un query a ejecutar.");
+                return;
+            }
 
+            // Verificar que se haya seleccionado una base de datos en el ComboBox
+            if (cbBaseDeDatos.SelectedItem == null)
+            {
+                MessageBox.Show("No hay ninguna base de datos seleccionada.");
+                return;
+            }
+            string selectedDatabase = cbBaseDeDatos.SelectedItem.ToString();
+            userdata.BaseDeDatos = selectedDatabase;
+
+            // Obtener el nodo seleccionado en el TreeView.
+            TreeNode selectedNode = treeViewAsistente.SelectedNode;
+            if (selectedNode == null)
+            {
+                MessageBox.Show("Por favor, selecciona un servidor en el TreeView.");
+                return;
+            }
+
+            // Si el nodo seleccionado es de tipo "BaseDeDatos", usamos su nodo padre (el servidor)
+            if (selectedNode.Tag != null && selectedNode.Tag.ToString() == "BaseDeDatos")
+            {
+                selectedNode = selectedNode.Parent;
+            }
+
+            // Verificamos si el nodo tiene el objeto Userdata
+            if (selectedNode.Tag == null || !(selectedNode.Tag is Userdata))
+            {
+                MessageBox.Show("No se encontró la información de conexión en el nodo seleccionado.");
+                return;
+            }
+            Userdata conexionData = (Userdata)selectedNode.Tag;
+
+            // Crear la conexión a partir de la información del servidor y el gestor.
+            DbConnection connection = accesoSQLServer.GetDBConnection(
+                conexionData.SistemaGestor,
+                conexionData.Servidor,
+                conexionData.Usuario,
+                conexionData.Contraseña
+            );
+
+            try
+            {
+                connection.Open();
+                DbCommand cmd = connection.CreateCommand();
+
+                // Para algunos gestores es necesario cambiar a la base de datos seleccionada
+                switch (conexionData.SistemaGestor.ToLower())
+                {
+                    case "sqlserver":
+                        cmd.CommandText = $"USE [{selectedDatabase}]; {query}";
+                        break;
+                    case "mysql":
+                        cmd.CommandText = $"USE `{selectedDatabase}`; {query}";
+                        break;
+                    case "postgresql":
+                        // En PostgreSQL se suele especificar la base de datos en el connection string.
+                        // Aquí se cierra la conexión actual y se abre una nueva conexión con la base de datos seleccionada.
+                        connection.Close();
+                        connection = accesoSQLServer.GetDBConnection(
+                            conexionData.SistemaGestor,
+                            conexionData.Servidor,
+                            conexionData.Usuario,
+                            conexionData.Contraseña,
+                            conexionData.BaseDeDatos
+                        );
+                        connection.Open();
+                        cmd = connection.CreateCommand();
+                        cmd.CommandText = query;
+                        break;
+                    case "oracle":
+                        // Si el usuario no especificó el esquema en la consulta, se lo agregamos
+                        if (!query.ToLower().Contains("from") && !query.ToLower().Contains("into"))
+                        {
+                            query = $"ALTER SESSION SET CURRENT_SCHEMA = {selectedDatabase}; {query}";
+                        }
+                        cmd.CommandText = query;
+                        break;
+
+                    case "firebird":
+                        cmd.CommandText = query;
+                        break;
+                    default:
+                        MessageBox.Show("Gestor de base de datos no soportado para ejecutar queries.");
+                        return;
+                }
+
+                // Si el query es un SELECT, se puede intentar llenar un DataTable y contar las filas
+                if (query.TrimStart().StartsWith("select", StringComparison.OrdinalIgnoreCase))
+                {
+                    DataTable dt = new DataTable();
+                    DbDataAdapter adapter = null;
+                    if (conexionData.SistemaGestor.ToLower() == "sqlserver")
+                    {
+                        adapter = new SqlDataAdapter((SqlCommand)cmd);
+                    }
+                    else if (conexionData.SistemaGestor.ToLower() == "mysql")
+                    {
+                        adapter = new MySqlDataAdapter((MySqlCommand)cmd);
+                    }
+                    else if (conexionData.SistemaGestor.ToLower() == "postgresql")
+                    {
+                        adapter = new NpgsqlDataAdapter((NpgsqlCommand)cmd);
+                    }
+                    else if (conexionData.SistemaGestor.ToLower() == "oracle")
+                    {
+                        adapter = new OracleDataAdapter((OracleCommand)cmd);
+                    }
+                    else if (conexionData.SistemaGestor.ToLower() == "firebird")
+                    {
+                        adapter = new FbDataAdapter((FbCommand)cmd);
+                    }
+
+                    if (adapter != null)
+                    {
+                        adapter.Fill(dt);
+                        MessageBox.Show($"Query ejecutado correctamente. Filas retornadas: {dt.Rows.Count}");
+                    }
+                    else
+                    {
+                        MessageBox.Show("No se pudo ejecutar el query en el gestor seleccionado.");
+                    }
+                }
+                else
+                {
+                    // Para queries que no retornan resultados (INSERT, UPDATE, DELETE, etc.)
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    MessageBox.Show($"Query ejecutado correctamente. Filas afectadas: {rowsAffected}");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al ejecutar el query: " + ex.Message);
+            }
+            finally
+            {
+                connection.Close();
+            }
         }
+
 
         private void btnNuevaConexion_Click(object sender, EventArgs e)
         {
