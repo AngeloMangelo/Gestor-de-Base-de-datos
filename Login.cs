@@ -218,32 +218,7 @@ namespace BaseDeDatosSQL
                 }
                 return bLoginIsCorrect;
             }
-            //else if (sGestor == "Firebird")
-            //{
 
-
-            //    try
-            //    {
-            //        bool conexionExitosa = ConectarFirebird(sServidor, sUsuario, sContraseña).Result;
-            //        if (!conexionExitosa)
-            //        {
-            //            MessageBox.Show("Error: " + acceso.sLastError, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //            bLoginIsCorrect = false;
-            //            return bLoginIsCorrect;
-            //        }
-            //        else
-            //        {
-            //            bLoginIsCorrect = true;
-            //            bSesionIniciada = true;
-            //            return bLoginIsCorrect;
-            //        }
-            //    }
-            //    finally
-            //    {
-            //        // Aquí puedes manejar cualquier limpieza o cierre de recursos si es necesario
-
-            //    }
-            //}
             else
             {
                 return bLoginIsCorrect;
