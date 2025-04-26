@@ -496,6 +496,10 @@ namespace BaseDeDatosSQL
             if (selectedNode == null)
                 return;
 
+            // Verificar si es una conexión (nodo raíz con Userdata)
+            bool esConexion = (selectedNode.Parent == null && selectedNode.Tag is Userdata);
+            btnRemoveConection.Enabled = esConexion;
+
             // Si el nodo seleccionado es una base de datos, usamos su nodo padre (el servidor)
             if (selectedNode.Tag != null && selectedNode.Tag.ToString() == "BaseDeDatos")
             {
@@ -517,6 +521,48 @@ namespace BaseDeDatosSQL
                 if (cbBaseDeDatos.Items.Count > 0)
                     cbBaseDeDatos.SelectedIndex = 0;
             }
+        }
+
+        private void btnRemoveConection_Click(object sender, EventArgs e)
+        {
+            TreeNode nodoSeleccionado = treeViewAsistente.SelectedNode;
+
+            if (nodoSeleccionado == null || !(nodoSeleccionado.Tag is Userdata))
+            {
+                MessageBox.Show("Seleccione una conexión primero.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Confirmar eliminación
+            DialogResult confirmacion = MessageBox.Show(
+                "¿Está seguro de eliminar esta conexión?",
+                "Confirmar",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+            if (confirmacion == DialogResult.Yes)
+            {
+                EliminarConexion(nodoSeleccionado);
+            }
+        }
+
+        private void EliminarConexion(TreeNode nodoConexion)
+        {
+            Userdata conexionAEliminar = (Userdata)nodoConexion.Tag;
+
+            // 1. Eliminar de la lista de conexiones activas
+            conexionesActivas.RemoveAll(c => c.Servidor == conexionAEliminar.Servidor && c.SistemaGestor == conexionAEliminar.SistemaGestor);
+
+            // 2. Eliminar nodo del TreeView
+            treeViewAsistente.Nodes.Remove(nodoConexion);
+
+            // 3. Cerrar conexión de base de datos (opcional, si es necesario)
+            // accesoSQLServer.CerrarConexion(conexionAEliminar);
+            Actualizar();
+
+            MessageBox.Show("Conexión eliminada correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            btnRemoveConection.Enabled = false;
         }
     }
 }

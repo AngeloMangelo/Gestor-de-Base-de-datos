@@ -201,6 +201,7 @@
             // btnRemoveConection
             // 
             this.btnRemoveConection.BackColor = System.Drawing.SystemColors.ButtonFace;
+            this.btnRemoveConection.Enabled = false;
             this.btnRemoveConection.ForeColor = System.Drawing.SystemColors.WindowText;
             this.btnRemoveConection.Image = global::BaseDeDatosSQL.Properties.Resources.remove_icon;
             this.btnRemoveConection.Location = new System.Drawing.Point(396, 10);
@@ -208,6 +209,7 @@
             this.btnRemoveConection.Size = new System.Drawing.Size(45, 36);
             this.btnRemoveConection.TabIndex = 16;
             this.btnRemoveConection.UseVisualStyleBackColor = false;
+            this.btnRemoveConection.Click += new System.EventHandler(this.btnRemoveConection_Click);
             // 
             // btnRefreshDB
             // 
