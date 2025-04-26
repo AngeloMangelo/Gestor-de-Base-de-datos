@@ -15,14 +15,16 @@ namespace BaseDeDatosSQL
         private string Server;
         private string Gestor;
         private string Database;
+        private string ruta;
 
-        public Userdata(string sName, string sPassword, string sServer, string sGestor, string sDatabase = "")
+        public Userdata(string sName, string sPassword, string sServer, string sGestor, string sDatabase = "", string ruta = null)
         {
             this.Name = sName;
             this.Password = sPassword;
             this.Server = sServer;
             this.Gestor = sGestor;
             this.Database = sDatabase;
+            this.ruta = ruta;
         }
 
         public string Usuario
@@ -47,6 +49,11 @@ namespace BaseDeDatosSQL
         {
             get { return Database; }
             set { Database = value; }
+        }
+        public string Ruta
+        {
+            get { return ruta; }
+            set { ruta = value; }
         }
 
         // Método para obtener el nombre de usuario

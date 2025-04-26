@@ -37,6 +37,7 @@
             this.btnIngresar = new System.Windows.Forms.Button();
             this.cbMotorDB = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
+            this.pgEspera = new System.Windows.Forms.ProgressBar();
             this.SuspendLayout();
             // 
             // tbServidor
@@ -123,11 +124,21 @@
             this.label4.TabIndex = 8;
             this.label4.Text = "Motor de base de datos:";
             // 
+            // pgEspera
+            // 
+            this.pgEspera.Location = new System.Drawing.Point(-1, 219);
+            this.pgEspera.Name = "pgEspera";
+            this.pgEspera.Size = new System.Drawing.Size(198, 23);
+            this.pgEspera.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
+            this.pgEspera.TabIndex = 9;
+            this.pgEspera.Visible = false;
+            // 
             // Login
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(198, 220);
+            this.ClientSize = new System.Drawing.Size(198, 242);
+            this.Controls.Add(this.pgEspera);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.cbMotorDB);
             this.Controls.Add(this.btnIngresar);
@@ -157,5 +168,6 @@
         private System.Windows.Forms.Button btnIngresar;
         private System.Windows.Forms.ComboBox cbMotorDB;
         private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.ProgressBar pgEspera;
     }
 }

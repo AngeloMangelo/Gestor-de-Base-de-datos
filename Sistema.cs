@@ -21,13 +21,14 @@ namespace BaseDeDatosSQL
 {
     public partial class Sistema : Form
     {
-
         private Userdata userdata; // Variable para almacenar la instancia de UserData
         AccesoSQLServer accesoSQLServer = new AccesoSQLServer();
         private string sNombre;    // Variable para almacenar el nombre de usuario
         private string sContraseña; // Variable para almacenar la contraseña
         private string sServidor;  // Variable para almacenar el servidor
         private string sGestor;    // Variable para almacenar el gestor de base de datos
+        private string sBaseDeDatos; // Variable para almacenar el nombre de la base de datos
+        private string sRutaDB;   // Variable para almacenar la ruta de la base de datos
 
         private string selectedTablename;
         private string SelectedDb;
@@ -44,13 +45,16 @@ namespace BaseDeDatosSQL
         {
             treeViewAsistente.AfterSelect += treeViewAsistente_AfterSelect;
 
+            sGestor = userdata.SistemaGestor;
             sNombre = userdata.Usuario;
             sContraseña = userdata.Contraseña;
             sServidor = userdata.Servidor;
-            sGestor = userdata.SistemaGestor;
+            
+            sBaseDeDatos = userdata.BaseDeDatos; // Asignar la base de datos desde el objeto Userdata
+            sRutaDB = userdata.Ruta; // Asignar la ruta de la base de datos desde el objeto Userdata
 
             //SqlConnection conexion = new SqlConnection(accesoSQLServer.GetDBConnection(sGestor, sServidor, sNombre, sContraseña));
-            DbConnection conexion = accesoSQLServer.GetDBConnection(sGestor, sServidor, sNombre, sContraseña);
+            DbConnection conexion = accesoSQLServer.GetDBConnection(sGestor, sServidor, sNombre, sContraseña,sBaseDeDatos,sRutaDB);
 
 
             treeViewAsistente.ShowPlusMinus = true;  // Muestra los botones de expansión

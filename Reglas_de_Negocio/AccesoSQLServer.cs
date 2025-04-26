@@ -30,8 +30,8 @@ namespace Reglas_de_Negocio
         public SqlException lastsqlException = null;
         public static string sRutaBD;
         
-        //El cerebro de las conexiones a los sitemas Gestores de Datos :O!
-        public DbConnection GetDBConnection(string gestor, string servidor, string usuario, string contraseña, string Database ="")
+        //El cerebro de las conexiones a los sistemas Gestores de Datos :O!
+        public DbConnection GetDBConnection(string gestor, string servidor, string usuario, string contraseña, string Database ="", string Ruta = "")
         {
             DbConnection conexion;
 
@@ -51,7 +51,7 @@ namespace Reglas_de_Negocio
                     //conexion = new OracleConnection($"Data Source={servidor};User Id={usuario};Password={contraseña};");
                     break;
                 case "firebird":
-                    conexion = new FbConnection($"DataSource={servidor};Database={AccesoSQLServer.sRutaBD};User={usuario};Password={contraseña};Charset=UTF8;");
+                    conexion = new FbConnection($"DataSource={servidor};Database={Ruta};User={usuario};Password={contraseña};Charset=UTF8;");
                     break;
                 default:
                     throw new ArgumentException("Sistema gestor no soportado");
@@ -182,62 +182,25 @@ namespace Reglas_de_Negocio
 
 
         //comprobar conexion en firebird
-        public Boolean SiHayConexionFirebird(string sServidor, string sUsuario, string sContraseña)//<-- para firebir es necesario especificar la ruta de la base de datos.
+        public Boolean SiHayConexionFirebird(string sServidor, string sUsuario, string sContraseña, string sRutadb)
         {
-            Boolean bAllOk = false;
-            string sBaseDatos = "";
-
-            bool esLocal = (sServidor == "localhost" || sServidor == "127.0.0.1" || sServidor == "::1");
-
-            if (esLocal)
+            try
             {
-                using (OpenFileDialog ofd = new OpenFileDialog())
-                {
-                    ofd.Filter = "Archivos Firebird (*.fdb)|*.fdb";
-                    ofd.Title = "Seleccione la base de datos Firebird";
-
-                    if (ofd.ShowDialog() == DialogResult.OK)
-                    {
-                        sBaseDatos = ofd.FileName;
-                    }
-                    else
-                    {
-                        return false; 
-                    }
-                }
-            }
-            else
-            {
-                sBaseDatos = Microsoft.VisualBasic.Interaction.InputBox("Ingrese la ruta de la base de datos en el servidor:", "Ruta de Base de Datos", "/ruta/remota/database.fdb");
-
-                if (string.IsNullOrWhiteSpace(sBaseDatos))
-                    return false; 
-            }
-
-
-            string conexion = $"DataSource={sServidor};Database={sBaseDatos};User={sUsuario};Password={sContraseña};Charset=UTF8;";
-            sRutaBD = sBaseDatos;
-
-            using (FbConnection conn = new FbConnection(conexion))
-            {
-                try
+                string conexion = $"DataSource={sServidor};Database={sRutadb};User={sUsuario};Password={sContraseña};Charset=UTF8;";
+                
+                using (FbConnection conn = new FbConnection(conexion))
                 {
                     conn.Open();
                     conn.Close();
-                    bAllOk = true;
-                }
-                catch (Exception ex)
-                {
-                    sLastError = ex.Message;
-
-                    bAllOk = false;
+                    return true;
                 }
             }
-
-            return bAllOk;
+            catch (Exception ex)
+            {
+                sLastError = ex.Message;
+                return false;
+            }
         }
-
-
 
         public bool ExcecuteQuery(string query, SqlConnection connection)
         {
