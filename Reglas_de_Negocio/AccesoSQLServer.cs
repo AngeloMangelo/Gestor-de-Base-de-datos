@@ -60,12 +60,12 @@ namespace Reglas_de_Negocio
             return conexion;
         }
 
-
         public string GetCustomSQLConnection(string sServidor, string sUsuario, string sContraseña, string database)
         {
             string sSQLConexion = $"Data Source={sServidor};Initial Catalog={database};User ID={sUsuario};Password={sContraseña};MultipleActiveResultSets=true;";
             return sSQLConexion;
         }
+
         //Comprobar conexion a SQL Server
         public Boolean SiHayConexion(string sServidor, string sUsuario, string sContraseña)
         {
@@ -127,6 +127,7 @@ namespace Reglas_de_Negocio
 
             return bAllOk;
         }
+
         // Comprobar conexión a PostgreSQL
         public Boolean SiHayConexionPostgreSQL(string sServidor, string sUsuario, string sContraseña)
         {
@@ -154,7 +155,6 @@ namespace Reglas_de_Negocio
         }
 
         // Comprobar conexión a Oracle
-
         public Boolean SiHayConexionOracle(string sServidor, string sUsuario, string sContraseña)
         {
             Boolean bAllOk = false;
@@ -179,7 +179,6 @@ namespace Reglas_de_Negocio
 
             return bAllOk;
         }
-
 
         //comprobar conexion en firebird
         public Boolean SiHayConexionFirebird(string sServidor, string sUsuario, string sContraseña, string sRutadb)

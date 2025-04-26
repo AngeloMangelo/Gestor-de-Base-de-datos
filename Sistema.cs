@@ -183,7 +183,7 @@ namespace BaseDeDatosSQL
             pbSistema.Visible = true; 
             pbSistema.Style = ProgressBarStyle.Marquee; 
 
-            pcRefresh.Image = Properties.Resources.refreshgif; // Cambia la imagen a la de refrescar
+            pcRefresh.Image = Properties.Resources.refreshgif;
             pcRefresh.Visible = true;
             pcRefresh.Enabled = true; 
             pcRefresh.BringToFront();
@@ -557,8 +557,7 @@ namespace BaseDeDatosSQL
             // 2. Eliminar nodo del TreeView
             treeViewAsistente.Nodes.Remove(nodoConexion);
 
-            // 3. Cerrar conexión de base de datos (opcional, si es necesario)
-            // accesoSQLServer.CerrarConexion(conexionAEliminar);
+            // 3. Actualizar el TreeView
             Actualizar();
 
             MessageBox.Show("Conexión eliminada correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);

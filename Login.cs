@@ -20,8 +20,6 @@ namespace BaseDeDatosSQL
         public Boolean bSesionIniciada = false;
         public Userdata userdata;
 
-
-
         public Login()
         {
             InitializeComponent();
@@ -75,11 +73,7 @@ namespace BaseDeDatosSQL
         public bool Conectar(string sGestor, string sUsuario, string sContraseña, string sServidor) 
         {
             AccesoSQLServer acceso = new AccesoSQLServer();
-            
-
-
             userdata = new Userdata(sUsuario, sContraseña, sServidor, sGestor);
-
 
             if (sGestor == "SQLServer")
             {
@@ -198,13 +192,13 @@ namespace BaseDeDatosSQL
                     }
                 }
 
-                userdata.Ruta = sBaseDatos; // Guardar ruta en UserData si es necesario
+                userdata.Ruta = sBaseDatos;
                 // Llamar al método de la DLL con los 4 parámetros
                 if (!acceso.SiHayConexionFirebird(
                     userdata.Servidor,
                     userdata.Usuario,
                     userdata.Contraseña,
-                    userdata.Ruta)) // <-- Nuevo parámetro
+                    userdata.Ruta))
 
                 {
                     MessageBox.Show("Error: " + acceso.sLastError, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -214,7 +208,7 @@ namespace BaseDeDatosSQL
                 {
                     bLoginIsCorrect = true;
                     bSesionIniciada = true;
-                    userdata.Ruta = sBaseDatos; // Guardar ruta en UserData si es necesario
+                    userdata.Ruta = sBaseDatos;
                 }
                 return bLoginIsCorrect;
             }
@@ -223,51 +217,6 @@ namespace BaseDeDatosSQL
             {
                 return bLoginIsCorrect;
             }
-        }
-
-        public async Task<bool> ConectarFirebird(string sServidor, string sUsuario, string sContraseña)
-        {
-            string sBaseDatos = "";
-            bool esLocal = (sServidor == "localhost" || sServidor == "127.0.0.1" || sServidor == "::1");
-
-            // Ejecutar en el hilo de UI
-            await Task.Run(() =>
-            {
-                this.Invoke((MethodInvoker)delegate
-                {
-                    if (esLocal)
-                    {
-                        using (OpenFileDialog ofd = new OpenFileDialog())
-                        {
-                            ofd.Filter = "Archivos Firebird (*.fdb)|*.fdb";
-                            ofd.Title = "Seleccione la base de datos Firebird";
-                            if (ofd.ShowDialog() == DialogResult.OK)
-                            {
-                                sBaseDatos = ofd.FileName;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        sBaseDatos = Microsoft.VisualBasic.Interaction.InputBox(
-                            "Ingrese la ruta remota de la base de datos:",
-                            "Ruta de Firebird",
-                            "/ruta/ejemplo.fdb"
-                        );
-                    }
-                });
-            });
-
-            if (string.IsNullOrEmpty(sBaseDatos)) return false;
-
-            // Llama al método de la DLL
-            AccesoSQLServer acceso = new AccesoSQLServer();
-            return acceso.SiHayConexionFirebird(sServidor, sUsuario, sContraseña, sBaseDatos);
-        }
-
-        private void label1_Click(object sender, EventArgs e)
-        {
-
         }
 
         private void cbMotorDB_SelectedIndexChanged(object sender, EventArgs e)
