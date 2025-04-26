@@ -18,6 +18,7 @@ namespace BaseDeDatosSQL
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+
             //abrir el Dialogo login como primer paso
             Login dlgLogin = new Login();
             Application.Run(dlgLogin);

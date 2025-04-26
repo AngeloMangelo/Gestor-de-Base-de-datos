@@ -47,7 +47,7 @@
             // 
             this.treeViewAsistente.Location = new System.Drawing.Point(12, 51);
             this.treeViewAsistente.Name = "treeViewAsistente";
-            this.treeViewAsistente.Size = new System.Drawing.Size(271, 349);
+            this.treeViewAsistente.Size = new System.Drawing.Size(480, 349);
             this.treeViewAsistente.TabIndex = 0;
             this.treeViewAsistente.BeforeExpand += new System.Windows.Forms.TreeViewCancelEventHandler(this.treeViewAsistente_BeforeExpand);
             this.treeViewAsistente.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeViewAsistente_AfterSelect);
@@ -57,7 +57,7 @@
             // btnAddBD
             // 
             this.btnAddBD.Enabled = false;
-            this.btnAddBD.Location = new System.Drawing.Point(293, 332);
+            this.btnAddBD.Location = new System.Drawing.Point(502, 338);
             this.btnAddBD.Name = "btnAddBD";
             this.btnAddBD.Size = new System.Drawing.Size(128, 23);
             this.btnAddBD.TabIndex = 4;
@@ -69,7 +69,7 @@
             // btnSearchDB
             // 
             this.btnSearchDB.Enabled = false;
-            this.btnSearchDB.Location = new System.Drawing.Point(293, 361);
+            this.btnSearchDB.Location = new System.Drawing.Point(502, 367);
             this.btnSearchDB.Name = "btnSearchDB";
             this.btnSearchDB.Size = new System.Drawing.Size(136, 23);
             this.btnSearchDB.TabIndex = 5;
@@ -80,21 +80,19 @@
             // 
             // btnRefreshDB
             // 
-            this.btnRefreshDB.Enabled = false;
-            this.btnRefreshDB.Location = new System.Drawing.Point(430, 361);
+            this.btnRefreshDB.Location = new System.Drawing.Point(404, 18);
             this.btnRefreshDB.Name = "btnRefreshDB";
             this.btnRefreshDB.Size = new System.Drawing.Size(88, 23);
             this.btnRefreshDB.TabIndex = 6;
             this.btnRefreshDB.Text = "Actualizar BD";
             this.btnRefreshDB.UseVisualStyleBackColor = true;
-            this.btnRefreshDB.Visible = false;
             this.btnRefreshDB.Click += new System.EventHandler(this.btnRefreshDB_Click);
             // 
             // llCreateLogin
             // 
             this.llCreateLogin.AutoSize = true;
             this.llCreateLogin.Enabled = false;
-            this.llCreateLogin.Location = new System.Drawing.Point(458, 387);
+            this.llCreateLogin.Location = new System.Drawing.Point(789, 386);
             this.llCreateLogin.Name = "llCreateLogin";
             this.llCreateLogin.Size = new System.Drawing.Size(48, 13);
             this.llCreateLogin.TabIndex = 7;
@@ -105,7 +103,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(349, 387);
+            this.label1.Location = new System.Drawing.Point(680, 386);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(103, 13);
             this.label1.TabIndex = 8;
@@ -113,15 +111,15 @@
             // 
             // rtbQuery
             // 
-            this.rtbQuery.Location = new System.Drawing.Point(289, 68);
+            this.rtbQuery.Location = new System.Drawing.Point(498, 67);
             this.rtbQuery.Name = "rtbQuery";
-            this.rtbQuery.Size = new System.Drawing.Size(229, 243);
+            this.rtbQuery.Size = new System.Drawing.Size(351, 243);
             this.rtbQuery.TabIndex = 9;
             this.rtbQuery.Text = "";
             // 
             // btnEjecutarQuery
             // 
-            this.btnEjecutarQuery.Location = new System.Drawing.Point(443, 317);
+            this.btnEjecutarQuery.Location = new System.Drawing.Point(774, 316);
             this.btnEjecutarQuery.Name = "btnEjecutarQuery";
             this.btnEjecutarQuery.Size = new System.Drawing.Size(75, 23);
             this.btnEjecutarQuery.TabIndex = 10;
@@ -133,7 +131,7 @@
             // 
             this.cbBaseDeDatos.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbBaseDeDatos.FormattingEnabled = true;
-            this.cbBaseDeDatos.Location = new System.Drawing.Point(352, 22);
+            this.cbBaseDeDatos.Location = new System.Drawing.Point(683, 21);
             this.cbBaseDeDatos.Name = "cbBaseDeDatos";
             this.cbBaseDeDatos.Size = new System.Drawing.Size(166, 21);
             this.cbBaseDeDatos.TabIndex = 11;
@@ -142,7 +140,7 @@
             // 
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(289, 45);
+            this.label2.Location = new System.Drawing.Point(498, 44);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(61, 20);
             this.label2.TabIndex = 12;
@@ -174,7 +172,7 @@
             // 
             this.labelbdSelected.AutoSize = true;
             this.labelbdSelected.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelbdSelected.Location = new System.Drawing.Point(349, 5);
+            this.labelbdSelected.Location = new System.Drawing.Point(680, 4);
             this.labelbdSelected.Name = "labelbdSelected";
             this.labelbdSelected.Size = new System.Drawing.Size(130, 16);
             this.labelbdSelected.TabIndex = 15;
@@ -185,7 +183,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Window;
-            this.ClientSize = new System.Drawing.Size(530, 412);
+            this.ClientSize = new System.Drawing.Size(861, 412);
             this.Controls.Add(this.labelbdSelected);
             this.Controls.Add(this.btnNuevaConexion);
             this.Controls.Add(this.label3);

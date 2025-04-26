@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MySql.Data.MySqlClient;
+using Npgsql;
 
 namespace BaseDeDatosSQL
 {
@@ -20,10 +21,10 @@ namespace BaseDeDatosSQL
         public Userdata userdata;
 
 
+
         public Login()
         {
             InitializeComponent();
-
         }
 
         private void Login_Load(object sender, EventArgs e)
@@ -51,7 +52,9 @@ namespace BaseDeDatosSQL
 
                 await Task.Run(() => Conectar(sGestor, sUsuario, sContraseña, sServidor));
                 if (bLoginIsCorrect)
-                { this.Close(); }
+                {
+                    this.Close(); 
+                }
             }
             catch (Exception ex)
             {
@@ -67,8 +70,6 @@ namespace BaseDeDatosSQL
                 tbUsuario.Enabled = true;
                 tbContraseña.Enabled = true;
             }
-
-
         }
 
         public bool Conectar(string sGestor, string sUsuario, string sContraseña, string sServidor) 
@@ -189,7 +190,7 @@ namespace BaseDeDatosSQL
                         "Firebird Remoto",
                         "/ruta/ejemplo.fdb"
                     );
-
+                    userdata.Ruta = sBaseDatos; // Guardar ruta en UserData si es necesario
                     if (string.IsNullOrWhiteSpace(sBaseDatos))
                     {
                         bLoginIsCorrect = false;

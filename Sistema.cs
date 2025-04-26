@@ -21,6 +21,7 @@ namespace BaseDeDatosSQL
 {
     public partial class Sistema : Form
     {
+        public List<Userdata> conexionesActivas = new List<Userdata>(); // Lista de conexiones
         private Userdata userdata; // Variable para almacenar la instancia de UserData
         AccesoSQLServer accesoSQLServer = new AccesoSQLServer();
         private string sNombre;    // Variable para almacenar el nombre de usuario
@@ -56,6 +57,7 @@ namespace BaseDeDatosSQL
             //SqlConnection conexion = new SqlConnection(accesoSQLServer.GetDBConnection(sGestor, sServidor, sNombre, sContraseña));
             DbConnection conexion = accesoSQLServer.GetDBConnection(sGestor, sServidor, sNombre, sContraseña,sBaseDeDatos,sRutaDB);
 
+            AggPrimeraConexion();
 
             treeViewAsistente.ShowPlusMinus = true;  // Muestra los botones de expansión
             treeViewAsistente.ShowRootLines = true;  // Muestra las líneas de expansión en el nodo raíz (opcional)
@@ -81,6 +83,7 @@ namespace BaseDeDatosSQL
         {
             FormAddBD formAddBD = new FormAddBD(userdata);
             formAddBD.ShowDialog();
+
         }
 
         private void btnSearchDB_Click(object sender, EventArgs e)
@@ -171,13 +174,36 @@ namespace BaseDeDatosSQL
 
         private void btnRefreshDB_Click(object sender, EventArgs e)
         {
-            sNombre = userdata.Usuario;
-            sContraseña = userdata.Contraseña;
-            sServidor = userdata.Servidor;
+            try
+            {
+                treeViewAsistente.Nodes.Clear(); // Limpiar todo antes de recargar
 
-            DbConnection conexion = accesoSQLServer.GetDBConnection(sGestor, sServidor, sNombre, sContraseña);
+                foreach (var conexionData in conexionesActivas)
+                {
+                    DbConnection conexion = accesoSQLServer.GetDBConnection(
+                        conexionData.SistemaGestor,
+                        conexionData.Servidor,
+                        conexionData.Usuario,
+                        conexionData.Contraseña,
+                        conexionData.BaseDeDatos,
+                        conexionData.Ruta
+                    );
 
-            accesoSQLServer.CargarServidores(treeViewAsistente, conexion, sGestor);
+                    accesoSQLServer.CargarServidores(
+                        treeViewAsistente,
+                        conexion,
+                        conexionData.SistemaGestor,
+                        clearTreeView: false, // No limpiar después de la primera carga
+                        userdata: conexionData
+                    );
+                }
+
+                MessageBox.Show("Conexiones actualizadas correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al actualizar: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void treeViewAsistente_MouseClick(object sender, MouseEventArgs e)
@@ -386,7 +412,14 @@ namespace BaseDeDatosSQL
             }
         }
 
+        private void AggPrimeraConexion()
+        {
+            {
+                Userdata nuevaConexionUserdata = this.userdata;
+                conexionesActivas.Add(nuevaConexionUserdata);
 
+            }
+        }
         private void btnNuevaConexion_Click(object sender, EventArgs e)
         {
             Login login = new Login();
@@ -395,6 +428,7 @@ namespace BaseDeDatosSQL
             if (login.bSesionIniciada)
             {
                 Userdata nuevaConexionUserdata = login.userdata;
+                conexionesActivas.Add(nuevaConexionUserdata);
 
                 DbConnection nuevaConexion = accesoSQLServer.GetDBConnection(
                     nuevaConexionUserdata.SistemaGestor,

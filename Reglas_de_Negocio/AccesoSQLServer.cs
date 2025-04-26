@@ -297,7 +297,7 @@ namespace Reglas_de_Negocio
         public void CargarServidores(TreeView treeView, DbConnection conexion, string gestor, bool clearTreeView = true, Userdata userdata = null)
         {
             if (clearTreeView)
-                treeView.Nodes.Clear();
+                treeView.Nodes.Clear(); // Solo limpia si clearTreeView es true
 
             // Crear el nodo raíz del servidor
             string nombreNodo = userdata != null ? $"{userdata.SistemaGestor} - {userdata.Servidor}" : $"{gestor} - {conexion.Database}";
