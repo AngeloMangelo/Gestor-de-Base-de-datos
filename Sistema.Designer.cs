@@ -31,7 +31,6 @@
             this.treeViewAsistente = new System.Windows.Forms.TreeView();
             this.btnAddBD = new System.Windows.Forms.Button();
             this.btnSearchDB = new System.Windows.Forms.Button();
-            this.btnRefreshDB = new System.Windows.Forms.Button();
             this.llCreateLogin = new System.Windows.Forms.LinkLabel();
             this.label1 = new System.Windows.Forms.Label();
             this.rtbQuery = new System.Windows.Forms.RichTextBox();
@@ -41,11 +40,16 @@
             this.label3 = new System.Windows.Forms.Label();
             this.btnNuevaConexion = new System.Windows.Forms.Button();
             this.labelbdSelected = new System.Windows.Forms.Label();
+            this.pbSistema = new System.Windows.Forms.ProgressBar();
+            this.pcRefresh = new System.Windows.Forms.PictureBox();
+            this.btnRemoveConection = new System.Windows.Forms.Button();
+            this.btnRefreshDB = new System.Windows.Forms.Button();
+            ((System.ComponentModel.ISupportInitialize)(this.pcRefresh)).BeginInit();
             this.SuspendLayout();
             // 
             // treeViewAsistente
             // 
-            this.treeViewAsistente.Location = new System.Drawing.Point(12, 51);
+            this.treeViewAsistente.Location = new System.Drawing.Point(16, 51);
             this.treeViewAsistente.Name = "treeViewAsistente";
             this.treeViewAsistente.Size = new System.Drawing.Size(480, 349);
             this.treeViewAsistente.TabIndex = 0;
@@ -77,16 +81,6 @@
             this.btnSearchDB.UseVisualStyleBackColor = true;
             this.btnSearchDB.Visible = false;
             this.btnSearchDB.Click += new System.EventHandler(this.btnSearchDB_Click);
-            // 
-            // btnRefreshDB
-            // 
-            this.btnRefreshDB.Location = new System.Drawing.Point(404, 18);
-            this.btnRefreshDB.Name = "btnRefreshDB";
-            this.btnRefreshDB.Size = new System.Drawing.Size(88, 23);
-            this.btnRefreshDB.TabIndex = 6;
-            this.btnRefreshDB.Text = "Actualizar BD";
-            this.btnRefreshDB.UseVisualStyleBackColor = true;
-            this.btnRefreshDB.Click += new System.EventHandler(this.btnRefreshDB_Click);
             // 
             // llCreateLogin
             // 
@@ -160,9 +154,9 @@
             // btnNuevaConexion
             // 
             this.btnNuevaConexion.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnNuevaConexion.Location = new System.Drawing.Point(135, 12);
+            this.btnNuevaConexion.Location = new System.Drawing.Point(242, 10);
             this.btnNuevaConexion.Name = "btnNuevaConexion";
-            this.btnNuevaConexion.Size = new System.Drawing.Size(148, 30);
+            this.btnNuevaConexion.Size = new System.Drawing.Size(148, 36);
             this.btnNuevaConexion.TabIndex = 14;
             this.btnNuevaConexion.Text = "(+) Nueva Conexion";
             this.btnNuevaConexion.UseVisualStyleBackColor = true;
@@ -178,12 +172,64 @@
             this.labelbdSelected.TabIndex = 15;
             this.labelbdSelected.Text = "Bd Seleccionada:";
             // 
+            // pbSistema
+            // 
+            this.pbSistema.Enabled = false;
+            this.pbSistema.Location = new System.Drawing.Point(-1, 406);
+            this.pbSistema.Name = "pbSistema";
+            this.pbSistema.Size = new System.Drawing.Size(863, 23);
+            this.pbSistema.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
+            this.pbSistema.TabIndex = 17;
+            this.pbSistema.Visible = false;
+            // 
+            // pcRefresh
+            // 
+            this.pcRefresh.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.pcRefresh.BackColor = System.Drawing.SystemColors.Window;
+            this.pcRefresh.Enabled = false;
+            this.pcRefresh.Image = global::BaseDeDatosSQL.Properties.Resources.refreshgif;
+            this.pcRefresh.Location = new System.Drawing.Point(210, 181);
+            this.pcRefresh.Name = "pcRefresh";
+            this.pcRefresh.Size = new System.Drawing.Size(78, 80);
+            this.pcRefresh.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pcRefresh.TabIndex = 18;
+            this.pcRefresh.TabStop = false;
+            this.pcRefresh.Visible = false;
+            // 
+            // btnRemoveConection
+            // 
+            this.btnRemoveConection.BackColor = System.Drawing.SystemColors.ButtonFace;
+            this.btnRemoveConection.ForeColor = System.Drawing.SystemColors.WindowText;
+            this.btnRemoveConection.Image = global::BaseDeDatosSQL.Properties.Resources.remove_icon;
+            this.btnRemoveConection.Location = new System.Drawing.Point(396, 10);
+            this.btnRemoveConection.Name = "btnRemoveConection";
+            this.btnRemoveConection.Size = new System.Drawing.Size(45, 36);
+            this.btnRemoveConection.TabIndex = 16;
+            this.btnRemoveConection.UseVisualStyleBackColor = false;
+            // 
+            // btnRefreshDB
+            // 
+            this.btnRefreshDB.BackColor = System.Drawing.SystemColors.ButtonFace;
+            this.btnRefreshDB.ForeColor = System.Drawing.SystemColors.WindowText;
+            this.btnRefreshDB.Image = global::BaseDeDatosSQL.Properties.Resources.refresh_icon;
+            this.btnRefreshDB.Location = new System.Drawing.Point(447, 10);
+            this.btnRefreshDB.Name = "btnRefreshDB";
+            this.btnRefreshDB.Size = new System.Drawing.Size(45, 36);
+            this.btnRefreshDB.TabIndex = 6;
+            this.btnRefreshDB.UseVisualStyleBackColor = false;
+            this.btnRefreshDB.Click += new System.EventHandler(this.btnRefreshDB_Click);
+            // 
             // Sistema
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Window;
-            this.ClientSize = new System.Drawing.Size(861, 412);
+            this.ClientSize = new System.Drawing.Size(861, 430);
+            this.Controls.Add(this.pcRefresh);
+            this.Controls.Add(this.pbSistema);
+            this.Controls.Add(this.btnRemoveConection);
             this.Controls.Add(this.labelbdSelected);
             this.Controls.Add(this.btnNuevaConexion);
             this.Controls.Add(this.label3);
@@ -202,6 +248,7 @@
             this.Text = "Sistema";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Sistema_FormClosed);
             this.Load += new System.EventHandler(this.Sistema_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.pcRefresh)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -222,6 +269,9 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Button btnNuevaConexion;
         private System.Windows.Forms.Label labelbdSelected;
+        private System.Windows.Forms.Button btnRemoveConection;
+        private System.Windows.Forms.ProgressBar pbSistema;
+        private System.Windows.Forms.PictureBox pcRefresh;
     }
 }
 

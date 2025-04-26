@@ -172,22 +172,65 @@ namespace BaseDeDatosSQL
             formSelect.ShowDialog();
         }
 
-        private void btnRefreshDB_Click(object sender, EventArgs e)
+        async private void btnRefreshDB_Click(object sender, EventArgs e)
         {
+            btnRemoveConection.Enabled = false;
+            btnRefreshDB.Enabled = false;
+            btnAddBD.Enabled = false;
+            btnSearchDB.Enabled = false;
+            treeViewAsistente.Enabled = false;
+            rtbQuery.Enabled = false;
+            pbSistema.Visible = true; 
+            pbSistema.Style = ProgressBarStyle.Marquee; 
+
+            pcRefresh.Image = Properties.Resources.refreshgif; // Cambia la imagen a la de refrescar
+            pcRefresh.Visible = true;
+            pcRefresh.Enabled = true; 
+            pcRefresh.BringToFront();
+
+
             try
             {
+                await Task.Run(() => Actualizar()); 
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+            }
+            finally 
+            {
+                btnRemoveConection.Enabled = true;
+                btnRefreshDB.Enabled = true;
+                btnAddBD.Enabled = true;
+                btnSearchDB.Enabled = true;
+                treeViewAsistente.Enabled = true;
+                rtbQuery.Enabled = true;
+                pbSistema.Visible = false;
+
+                pcRefresh.Visible = false;
+                pcRefresh.Enabled = false;
+            }
+            
+        }
+
+        private void Actualizar()
+        {
+            this.Invoke((MethodInvoker)delegate // Esto es necesario para actualizar la UI desde un hilo diferente
+            {
+                
                 treeViewAsistente.Nodes.Clear(); // Limpiar todo antes de recargar
 
                 foreach (var conexionData in conexionesActivas)
                 {
                     DbConnection conexion = accesoSQLServer.GetDBConnection(
-                        conexionData.SistemaGestor,
-                        conexionData.Servidor,
-                        conexionData.Usuario,
-                        conexionData.Contraseña,
-                        conexionData.BaseDeDatos,
-                        conexionData.Ruta
-                    );
+                      conexionData.SistemaGestor,
+                      conexionData.Servidor,
+                      conexionData.Usuario,
+                      conexionData.Contraseña,
+                      conexionData.BaseDeDatos,
+                      conexionData.Ruta
+                        );
 
                     accesoSQLServer.CargarServidores(
                         treeViewAsistente,
@@ -195,17 +238,12 @@ namespace BaseDeDatosSQL
                         conexionData.SistemaGestor,
                         clearTreeView: false, // No limpiar después de la primera carga
                         userdata: conexionData
-                    );
+                      );
                 }
+                //MessageBox.Show("Conexiones actualizadas correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            });
 
-                MessageBox.Show("Conexiones actualizadas correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al actualizar: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
         }
-
         private void treeViewAsistente_MouseClick(object sender, MouseEventArgs e)
         {
             ContextMenuStrip contextMenuTreeView = new ContextMenuStrip();
@@ -434,7 +472,9 @@ namespace BaseDeDatosSQL
                     nuevaConexionUserdata.SistemaGestor,
                     nuevaConexionUserdata.Servidor,
                     nuevaConexionUserdata.Usuario,
-                    nuevaConexionUserdata.Contraseña
+                    nuevaConexionUserdata.Contraseña,
+                    nuevaConexionUserdata.BaseDeDatos,
+                    nuevaConexionUserdata.Ruta
                 );
 
                 // Pasar "nuevaConexionUserdata" como último parámetro
