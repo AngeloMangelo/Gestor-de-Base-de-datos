@@ -358,21 +358,78 @@ namespace Reglas_de_Negocio
                 TreeNode dbNode = new TreeNode(dbName) { Tag = "BaseDeDatos" };
                 serverNode.Nodes.Add(dbNode);
 
-                // Cargar tablas de la base de datos
                 using (var cmd = conexion.CreateCommand())
                 {
-                    cmd.CommandText = $"USE [{dbName}]; SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';";
-                    using (var adapter = new SqlDataAdapter((SqlCommand)cmd))
-                    {
-                        DataTable tables = new DataTable();
-                        adapter.Fill(tables);
+                    // Consulta para obtener tablas
+                    cmd.CommandText = $@"USE [{dbName}];
+                SELECT 
+                    t.name AS TableName
+                FROM 
+                    sys.tables t
+                ORDER BY 
+                    t.name";
 
-                        foreach (DataRow table in tables.Rows)
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
                         {
-                            string tableName = table["TABLE_NAME"].ToString();
+                            string tableName = reader["TableName"].ToString();
                             TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
                             dbNode.Nodes.Add(tableNode);
+
+                            // Cargar columnas con detalles
+                            CargarColumnasSQLServer(dbName, tableName, tableNode, conexion);
                         }
+                    }
+                }
+            }
+        }
+        private void CargarColumnasSQLServer(string databaseName, string tableName, TreeNode tableNode, DbConnection conexion)
+        {
+            string query = $@"USE [{databaseName}];
+        SELECT
+            c.name AS ColumnName,
+            ty.name AS DataType,
+            c.is_nullable AS IsNullable,
+            CASE WHEN pk.COLUMN_NAME IS NOT NULL THEN 1 ELSE 0 END AS IsPrimaryKey
+        FROM 
+            sys.columns c
+        INNER JOIN 
+            sys.types ty ON c.user_type_id = ty.user_type_id
+        LEFT JOIN (
+            SELECT 
+                ku.TABLE_NAME,
+                ku.COLUMN_NAME
+            FROM 
+                INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
+            INNER JOIN 
+                INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS ku 
+                ON tc.CONSTRAINT_NAME = ku.CONSTRAINT_NAME
+            WHERE 
+                tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
+        ) pk ON pk.TABLE_NAME = '{tableName}' AND pk.COLUMN_NAME = c.name
+        WHERE
+            c.object_id = OBJECT_ID('{tableName}')";
+
+            using (var cmd = conexion.CreateCommand())
+            {
+                cmd.CommandText = query;
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string columnName = reader["ColumnName"].ToString();
+                        string dataType = reader["DataType"].ToString();
+                        bool isNullable = (bool)reader["IsNullable"];
+                        bool isPrimaryKey = (int)reader["IsPrimaryKey"] == 1;
+
+                        // Formatear detalles
+                        string detalles = $"{columnName} ({dataType})";
+                        if (isPrimaryKey) detalles += " [PK]";
+                        if (!isNullable) detalles += " [NOT NULL]";
+
+                        TreeNode columnaNode = new TreeNode(detalles);
+                        tableNode.Nodes.Add(columnaNode);
                     }
                 }
             }
@@ -555,6 +612,8 @@ namespace Reglas_de_Negocio
                 MessageBox.Show("Error al cargar las tablas de Firebird: " + ex.Message);
             }
         }
+
+
         public void BasedeDatosEnComboBox(System.Windows.Forms.ComboBox comboBox, SqlConnection conexion)
         {
             try

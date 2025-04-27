@@ -67,6 +67,7 @@ namespace BaseDeDatosSQL
         }
         private void treeViewAsistente_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
+            
         }
 
         private void treeViewAsistente_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
