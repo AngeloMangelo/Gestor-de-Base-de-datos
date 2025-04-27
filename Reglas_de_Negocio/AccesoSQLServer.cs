@@ -416,6 +416,50 @@ namespace Reglas_de_Negocio
                         }
                     }
                 }
+
+                CargarLlavesSQLServer(dbName, dbNode, conexion);
+            }
+        }
+        private void CargarLlavesSQLServer(string databaseName, TreeNode dbNode, DbConnection conexion)
+        {
+            TreeNode llavesNode = new TreeNode("Llaves") { Tag = "Llaves" };
+            dbNode.Nodes.Add(llavesNode);
+
+            using (var cmd = conexion.CreateCommand())
+            {
+                cmd.CommandText = $@"USE [{databaseName}];
+            -- Consulta para Primary Keys
+            SELECT 
+                tc.CONSTRAINT_NAME AS KeyName,
+                tc.TABLE_NAME AS TableName
+            FROM 
+                INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+            WHERE 
+                tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
+
+            UNION ALL
+
+            -- Consulta para Foreign Keys
+            SELECT 
+                fk.name AS KeyName,
+                OBJECT_NAME(fk.parent_object_id) AS TableName
+            FROM 
+                sys.foreign_keys fk
+            INNER JOIN 
+                sys.tables t ON fk.referenced_object_id = t.object_id";
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string keyName = reader["KeyName"].ToString();
+                        string tableName = reader["TableName"].ToString();
+                        string keyType = keyName.StartsWith("PK_") ? "PK" : "FK";
+
+                        TreeNode keyNode = new TreeNode($"{keyType} {tableName} ({keyName})");
+                        llavesNode.Nodes.Add(keyNode);
+                    }
+                }
             }
         }
         private void CargarColumnasSQLServer(string databaseName, string objectName, TreeNode parentNode, DbConnection conexion)
