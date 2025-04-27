@@ -418,6 +418,73 @@ namespace Reglas_de_Negocio
                 }
 
                 CargarLlavesSQLServer(dbName, dbNode, conexion);
+                CargarProcedimientosSQLServer(dbName, dbNode, conexion);
+            }
+        }
+        private void CargarProcedimientosSQLServer(string databaseName, TreeNode dbNode, DbConnection conexion)
+        {
+            TreeNode spNode = new TreeNode("Procedimientos") { Tag = "Procedimientos" };
+            dbNode.Nodes.Add(spNode);
+
+            using (var cmd = conexion.CreateCommand())
+            {
+                cmd.CommandText = $@"USE [{databaseName}];
+            SELECT 
+                name AS ProcedureName,
+                OBJECT_DEFINITION(object_id) AS Definition
+            FROM 
+                sys.procedures
+            WHERE 
+                type = 'P' -- Solo procedimientos
+            ORDER BY 
+                name";
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string spName = reader["ProcedureName"].ToString();
+                        TreeNode spItem = new TreeNode(spName) { Tag = "SP" };
+                        spNode.Nodes.Add(spItem);
+
+                        // Opcional: Agregar parámetros como subnodos
+                        CargarParametrosSP(databaseName, spName, spItem, conexion);
+                    }
+                }
+            }
+        }
+
+        private void CargarParametrosSP(string databaseName, string spName, TreeNode spNode, DbConnection conexion)
+        {
+            using (var cmd = conexion.CreateCommand())
+            {
+                cmd.CommandText = $@"USE [{databaseName}];
+            SELECT 
+                p.name AS ParameterName,
+                TYPE_NAME(p.user_type_id) AS DataType,
+                p.is_output AS IsOutput
+            FROM 
+                sys.parameters p
+            WHERE 
+                p.object_id = OBJECT_ID('{spName}')
+            ORDER BY 
+                p.parameter_id";
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string paramName = reader["ParameterName"].ToString();
+                        string dataType = reader["DataType"].ToString();
+                        bool isOutput = (bool)reader["IsOutput"];
+
+                        string paramDetails = $"{paramName} ({dataType})";
+                        if (isOutput) paramDetails += " [OUTPUT]";
+
+                        TreeNode paramNode = new TreeNode(paramDetails);
+                        spNode.Nodes.Add(paramNode);
+                    }
+                }
             }
         }
         private void CargarLlavesSQLServer(string databaseName, TreeNode dbNode, DbConnection conexion)
