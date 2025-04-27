@@ -21,6 +21,7 @@ using FirebirdSql.Data.Services;
 using BaseDeDatosSQL;
 using Microsoft.VisualBasic.ApplicationServices;
 using Org.BouncyCastle.Tls;
+using System.Security.AccessControl;
 
 namespace Reglas_de_Negocio
 {
@@ -358,9 +359,17 @@ namespace Reglas_de_Negocio
                 TreeNode dbNode = new TreeNode(dbName) { Tag = "BaseDeDatos" };
                 serverNode.Nodes.Add(dbNode);
 
+                // Nodo para Tablas
+                TreeNode tablasNode = new TreeNode("Tablas") { Tag = "Tablas" };
+                dbNode.Nodes.Add(tablasNode);
+
+                // Nodo para Vistas
+                TreeNode vistasNode = new TreeNode("Vistas") { Tag = "Vistas" };
+                dbNode.Nodes.Add(vistasNode);
+
                 using (var cmd = conexion.CreateCommand())
                 {
-                    // Consulta para obtener tablas
+                    // Cargar Tablas
                     cmd.CommandText = $@"USE [{dbName}];
                 SELECT 
                     t.name AS TableName
@@ -375,16 +384,41 @@ namespace Reglas_de_Negocio
                         {
                             string tableName = reader["TableName"].ToString();
                             TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
-                            dbNode.Nodes.Add(tableNode);
+                            tablasNode.Nodes.Add(tableNode);
 
-                            // Cargar columnas con detalles
+                            // Cargar columnas de la tabla
                             CargarColumnasSQLServer(dbName, tableName, tableNode, conexion);
+                        }
+                    }
+                }
+
+                using (var cmd = conexion.CreateCommand())
+                {
+                    // Cargar Vistas
+                    cmd.CommandText = $@"USE [{dbName}];
+                SELECT 
+                    v.name AS ViewName
+                FROM 
+                    sys.views v
+                ORDER BY 
+                    v.name";
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            string viewName = reader["ViewName"].ToString();
+                            TreeNode viewNode = new TreeNode(viewName) { Tag = "Vista" };
+                            vistasNode.Nodes.Add(viewNode);
+
+                            // Cargar columnas de la vista
+                            CargarColumnasSQLServer(dbName, viewName, viewNode, conexion);
                         }
                     }
                 }
             }
         }
-        private void CargarColumnasSQLServer(string databaseName, string tableName, TreeNode tableNode, DbConnection conexion)
+        private void CargarColumnasSQLServer(string databaseName, string objectName, TreeNode parentNode, DbConnection conexion)
         {
             string query = $@"USE [{databaseName}];
         SELECT
@@ -407,9 +441,9 @@ namespace Reglas_de_Negocio
                 ON tc.CONSTRAINT_NAME = ku.CONSTRAINT_NAME
             WHERE 
                 tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
-        ) pk ON pk.TABLE_NAME = '{tableName}' AND pk.COLUMN_NAME = c.name
+        ) pk ON pk.TABLE_NAME = '{objectName}' AND pk.COLUMN_NAME = c.name
         WHERE
-            c.object_id = OBJECT_ID('{tableName}')";
+            c.object_id = OBJECT_ID('{objectName}')";
 
             using (var cmd = conexion.CreateCommand())
             {
@@ -429,7 +463,7 @@ namespace Reglas_de_Negocio
                         if (!isNullable) detalles += " [NOT NULL]";
 
                         TreeNode columnaNode = new TreeNode(detalles);
-                        tableNode.Nodes.Add(columnaNode);
+                        parentNode.Nodes.Add(columnaNode);
                     }
                 }
             }
