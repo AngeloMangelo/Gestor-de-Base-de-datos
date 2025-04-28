@@ -580,6 +580,7 @@ namespace Reglas_de_Negocio
             }
         }
 
+
         private void CargarBasesDeDatosMySQL(DbConnection conexion, TreeNode serverNode)
         {
             using (var cmd = new MySqlCommand("SHOW DATABASES", (MySqlConnection)conexion))
@@ -602,10 +603,82 @@ namespace Reglas_de_Negocio
 
                     // Nuevo nodo para Llaves
                     CargarLlavesMySQL(dbName, dbNode, (MySqlConnection)conexion);
+
+                    // Nuevo nodo para Procedimientos
+                    CargarProcedimientosMySQL(dbName, dbNode, (MySqlConnection)conexion);
                 }
             }
         }
+        private void CargarProcedimientosMySQL(string dbName, TreeNode dbNode, MySqlConnection conexion)
+        {
+            TreeNode spNode = new TreeNode("Procedimientos") { Tag = "Procedimientos" };
+            dbNode.Nodes.Add(spNode);
 
+            // Consulta para obtener procedimientos
+            string querySP = $@"
+        SELECT 
+            ROUTINE_NAME
+        FROM 
+            INFORMATION_SCHEMA.ROUTINES 
+        WHERE 
+            ROUTINE_SCHEMA = '{dbName}'
+            AND ROUTINE_TYPE = 'PROCEDURE'";
+
+            using (var cmdSP = new MySqlCommand(querySP, conexion))
+            using (var adapterSP = new MySqlDataAdapter(cmdSP))
+            {
+                DataTable procedimientos = new DataTable();
+                adapterSP.Fill(procedimientos);
+
+                foreach (DataRow sp in procedimientos.Rows)
+                {
+                    string spName = sp["ROUTINE_NAME"].ToString();
+                    TreeNode spItem = new TreeNode(spName) { Tag = "SP" };
+                    spNode.Nodes.Add(spItem);
+
+                    // Cargar parámetros del procedimiento
+                    CargarParametrosSPMySQL(dbName, spName, spItem, conexion);
+                }
+            }
+        }
+        private void CargarParametrosSPMySQL(string dbName, string spName, TreeNode spNode, MySqlConnection conexion)
+        {
+            string queryParams = $@"
+        SELECT 
+            PARAMETER_NAME,
+            DATA_TYPE,
+            PARAMETER_MODE
+        FROM 
+            INFORMATION_SCHEMA.PARAMETERS 
+        WHERE 
+            SPECIFIC_SCHEMA = '{dbName}'
+            AND SPECIFIC_NAME = '{spName}'
+        ORDER BY 
+            ORDINAL_POSITION";
+
+            using (var cmdParams = new MySqlCommand(queryParams, conexion))
+            using (var adapterParams = new MySqlDataAdapter(cmdParams))
+            {
+                DataTable parametros = new DataTable();
+                adapterParams.Fill(parametros);
+
+                foreach (DataRow param in parametros.Rows)
+                {
+                    string paramName = param["PARAMETER_NAME"].ToString().TrimStart('@');
+                    string dataType = param["DATA_TYPE"].ToString();
+                    string paramMode = param["PARAMETER_MODE"].ToString();
+
+                    // Formatear detalles
+                    string detalles = $"{paramName} ({dataType})";
+                    if (paramMode == "IN") detalles += " [INPUT]";
+                    if (paramMode == "OUT") detalles += " [OUTPUT]";
+                    if (paramMode == "INOUT") detalles += " [INPUT/OUTPUT]";
+
+                    TreeNode paramNode = new TreeNode(detalles);
+                    spNode.Nodes.Add(paramNode);
+                }
+            }
+        }
         private void CargarLlavesMySQL(string dbName, TreeNode dbNode, MySqlConnection conexion)
         {
             TreeNode llavesNode = new TreeNode("Llaves") { Tag = "Llaves" };
@@ -673,7 +746,6 @@ namespace Reglas_de_Negocio
                 }
             }
         }
-
         private void CargarObjetosMySQL(string dbName, TreeNode dbNode, MySqlConnection conexion, string tipoObjeto, string nombreNodo)
         {
             TreeNode nodoObjetos = new TreeNode(nombreNodo);
