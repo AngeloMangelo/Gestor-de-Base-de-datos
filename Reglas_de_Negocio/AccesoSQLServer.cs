@@ -594,42 +594,54 @@ namespace Reglas_de_Negocio
                     TreeNode dbNode = new TreeNode(dbName) { Tag = "BaseDeDatos" };
                     serverNode.Nodes.Add(dbNode);
 
-                    // Cargar tablas de la base de datos
-                    using (var cmdTablas = new MySqlCommand($"USE `{dbName}`; SHOW TABLES;", (MySqlConnection)conexion))
-                    using (var adapterTablas = new MySqlDataAdapter(cmdTablas))
+                    // Cargar tablas
+                    CargarObjetosMySQL(dbName, dbNode, (MySqlConnection)conexion, "BASE TABLE", "Tablas");
+
+                    // Cargar vistas
+                    CargarObjetosMySQL(dbName, dbNode, (MySqlConnection)conexion, "VIEW", "Vistas");
+                }
+            }
+        }
+
+        private void CargarObjetosMySQL(string dbName, TreeNode dbNode, MySqlConnection conexion, string tipoObjeto, string nombreNodo)
+        {
+            TreeNode nodoObjetos = new TreeNode(nombreNodo);
+            dbNode.Nodes.Add(nodoObjetos);
+
+            string query = $"SHOW FULL TABLES FROM `{dbName}` WHERE Table_type = '{tipoObjeto}';";
+
+            using (var cmd = new MySqlCommand(query, conexion))
+            using (var adapter = new MySqlDataAdapter(cmd))
+            {
+                DataTable objetos = new DataTable();
+                adapter.Fill(objetos);
+
+                foreach (DataRow row in objetos.Rows)
+                {
+                    string objetoNombre = row[0].ToString();
+                    TreeNode objetoNode = new TreeNode(objetoNombre) { Tag = tipoObjeto == "VIEW" ? "Vista" : "Tabla" };
+                    nodoObjetos.Nodes.Add(objetoNode);
+
+                    // Cargar columnas con detalles
+                    using (var cmdColumnas = new MySqlCommand($"SHOW FULL COLUMNS FROM `{objetoNombre}` FROM `{dbName}`;", conexion))
+                    using (var adapterColumnas = new MySqlDataAdapter(cmdColumnas))
                     {
-                        DataTable tables = new DataTable();
-                        adapterTablas.Fill(tables);
+                        DataTable columnas = new DataTable();
+                        adapterColumnas.Fill(columnas);
 
-                        foreach (DataRow table in tables.Rows)
+                        foreach (DataRow columna in columnas.Rows)
                         {
-                            string tableName = table[0].ToString();
-                            TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
-                            dbNode.Nodes.Add(tableNode);
+                            string columnName = columna["Field"].ToString();
+                            string dataType = columna["Type"].ToString();
+                            string isNullable = columna["Null"].ToString(); // "YES" o "NO"
+                            string keyType = columna["Key"].ToString(); // "PRI" si es PK
 
-                            // Cargar columnas con detalles
-                            using (var cmdColumnas = new MySqlCommand($"USE `{dbName}`; SHOW FULL COLUMNS FROM `{tableName}`;", (MySqlConnection)conexion))
-                            using (var adapterColumn = new MySqlDataAdapter(cmdColumnas))
-                            {
-                                DataTable columnas = new DataTable();
-                                adapterColumn.Fill(columnas);
+                            string detalles = $"{columnName} ({dataType})";
+                            if (keyType.Contains("PRI")) detalles += " [PK]";
+                            if (isNullable == "NO") detalles += " [NOT NULL]";
 
-                                foreach (DataRow columna in columnas.Rows)
-                                {
-                                    string columnName = columna["Field"].ToString();
-                                    string dataType = columna["Type"].ToString();
-                                    string isNullable = columna["Null"].ToString(); // "YES" o "NO"
-                                    string keyType = columna["Key"].ToString(); // "PRI" si es PK
-
-                                    // Formatear texto del nodo
-                                    string detalles = $"{columnName} ({dataType})";
-                                    if (keyType.Contains("PRI")) detalles += " [PK]";
-                                    if (isNullable == "NO") detalles += " [NOT NULL]";
-
-                                    TreeNode columnNode = new TreeNode(detalles) { Tag = "Columna" };
-                                    tableNode.Nodes.Add(columnNode);
-                                }
-                            }
+                            TreeNode columnaNode = new TreeNode(detalles);
+                            objetoNode.Nodes.Add(columnaNode);
                         }
                     }
                 }
