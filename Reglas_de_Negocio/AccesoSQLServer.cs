@@ -606,6 +606,30 @@ namespace Reglas_de_Negocio
                             string tableName = table[0].ToString();
                             TreeNode tableNode = new TreeNode(tableName) { Tag = "Tabla" };
                             dbNode.Nodes.Add(tableNode);
+
+                            // Cargar columnas con detalles
+                            using (var cmdColumnas = new MySqlCommand($"USE `{dbName}`; SHOW FULL COLUMNS FROM `{tableName}`;", (MySqlConnection)conexion))
+                            using (var adapterColumn = new MySqlDataAdapter(cmdColumnas))
+                            {
+                                DataTable columnas = new DataTable();
+                                adapterColumn.Fill(columnas);
+
+                                foreach (DataRow columna in columnas.Rows)
+                                {
+                                    string columnName = columna["Field"].ToString();
+                                    string dataType = columna["Type"].ToString();
+                                    string isNullable = columna["Null"].ToString(); // "YES" o "NO"
+                                    string keyType = columna["Key"].ToString(); // "PRI" si es PK
+
+                                    // Formatear texto del nodo
+                                    string detalles = $"{columnName} ({dataType})";
+                                    if (keyType.Contains("PRI")) detalles += " [PK]";
+                                    if (isNullable == "NO") detalles += " [NOT NULL]";
+
+                                    TreeNode columnNode = new TreeNode(detalles) { Tag = "Columna" };
+                                    tableNode.Nodes.Add(columnNode);
+                                }
+                            }
                         }
                     }
                 }
