@@ -599,6 +599,77 @@ namespace Reglas_de_Negocio
 
                     // Cargar vistas
                     CargarObjetosMySQL(dbName, dbNode, (MySqlConnection)conexion, "VIEW", "Vistas");
+
+                    // Nuevo nodo para Llaves
+                    CargarLlavesMySQL(dbName, dbNode, (MySqlConnection)conexion);
+                }
+            }
+        }
+
+        private void CargarLlavesMySQL(string dbName, TreeNode dbNode, MySqlConnection conexion)
+        {
+            TreeNode llavesNode = new TreeNode("Llaves") { Tag = "Llaves" };
+            dbNode.Nodes.Add(llavesNode);
+
+            // Consulta para Primary Keys
+            string queryPK = $@"
+        SELECT 
+            TABLE_NAME,
+            COLUMN_NAME,
+            CONSTRAINT_NAME
+        FROM 
+            INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        WHERE 
+            TABLE_SCHEMA = '{dbName}'
+            AND CONSTRAINT_NAME = 'PRIMARY'";
+
+            // Consulta para Foreign Keys
+            string queryFK = $@"
+        SELECT 
+            CONSTRAINT_NAME,
+            TABLE_NAME,
+            COLUMN_NAME,
+            REFERENCED_TABLE_NAME,
+            REFERENCED_COLUMN_NAME
+        FROM 
+            INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        WHERE 
+            TABLE_SCHEMA = '{dbName}'
+            AND REFERENCED_TABLE_NAME IS NOT NULL";
+
+            // Cargar Primary Keys
+            using (var cmdPK = new MySqlCommand(queryPK, conexion))
+            using (var adapterPK = new MySqlDataAdapter(cmdPK))
+            {
+                DataTable pkTable = new DataTable();
+                adapterPK.Fill(pkTable);
+
+                foreach (DataRow pk in pkTable.Rows)
+                {
+                    string tabla = pk["TABLE_NAME"].ToString();
+                    string columna = pk["COLUMN_NAME"].ToString();
+
+                    TreeNode pkNode = new TreeNode($"PK {tabla} ({columna})");
+                    llavesNode.Nodes.Add(pkNode);
+                }
+            }
+
+            // Cargar Foreign Keys
+            using (var cmdFK = new MySqlCommand(queryFK, conexion))
+            using (var adapterFK = new MySqlDataAdapter(cmdFK))
+            {
+                DataTable fkTable = new DataTable();
+                adapterFK.Fill(fkTable);
+
+                foreach (DataRow fk in fkTable.Rows)
+                {
+                    string tabla = fk["TABLE_NAME"].ToString();
+                    string columna = fk["COLUMN_NAME"].ToString();
+                    string tablaReferenciada = fk["REFERENCED_TABLE_NAME"].ToString();
+                    string columnaReferenciada = fk["REFERENCED_COLUMN_NAME"].ToString();
+
+                    TreeNode fkNode = new TreeNode($"FK {tabla} ({columna} → {tablaReferenciada}.{columnaReferenciada})");
+                    llavesNode.Nodes.Add(fkNode);
                 }
             }
         }
