@@ -157,16 +157,15 @@
         }
 
         #endregion
-
-        private System.Windows.Forms.TextBox tbServidor;
-        private System.Windows.Forms.TextBox tbUsuario;
-        private System.Windows.Forms.TextBox tbContraseña;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Button btnIngresar;
-        private System.Windows.Forms.ComboBox cbMotorDB;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.ProgressBar pgEspera;
+        public System.Windows.Forms.TextBox tbServidor;
+        public System.Windows.Forms.TextBox tbUsuario;
+        public System.Windows.Forms.TextBox tbContraseña;
+        public System.Windows.Forms.ComboBox cbMotorDB;
     }
 }

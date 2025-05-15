@@ -224,7 +224,7 @@ namespace BaseDeDatosSQL
             //SQL Server
             if (cbMotorDB.SelectedIndex == 0)
             {
-                tbServidor.Text = "DESKTOP-6FTA15K\\SQLANGEL";
+                tbServidor.Text = "DESKTOP-6FTA15K";
                 tbUsuario.Text = "sa";
                 tbContraseña.Text = "12345";
             }

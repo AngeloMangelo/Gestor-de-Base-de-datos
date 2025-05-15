@@ -609,8 +609,16 @@ namespace BaseDeDatosSQL
 
         private void btnMigrar_Click(object sender, EventArgs e)
         {
-            formMigracion migracion = new formMigracion(userdata);
-            migracion.ShowDialog();
+            formMigracion migracion = new formMigracion(conexionesActivas);
+            if (migracion.ShowDialog() == DialogResult.OK)
+            {
+                Userdata origen = migracion.origenData;
+                Userdata destino = migracion.destinoData;
+
+               
+                FormSeleccionObjetos seleccion = new FormSeleccionObjetos(origen, destino);
+                seleccion.ShowDialog();
+            }
         }
     }
 }
