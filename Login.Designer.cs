@@ -56,7 +56,7 @@
             // 
             // tbContraseña
             // 
-            this.tbContraseña.Location = new System.Drawing.Point(26, 143);
+            this.tbContraseña.Location = new System.Drawing.Point(24, 143);
             this.tbContraseña.Name = "tbContraseña";
             this.tbContraseña.PasswordChar = '*';
             this.tbContraseña.Size = new System.Drawing.Size(160, 20);
@@ -91,7 +91,7 @@
             // 
             // btnIngresar
             // 
-            this.btnIngresar.Location = new System.Drawing.Point(65, 169);
+            this.btnIngresar.Location = new System.Drawing.Point(70, 178);
             this.btnIngresar.Name = "btnIngresar";
             this.btnIngresar.Size = new System.Drawing.Size(75, 26);
             this.btnIngresar.TabIndex = 4;

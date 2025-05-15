@@ -44,6 +44,7 @@
             this.pcRefresh = new System.Windows.Forms.PictureBox();
             this.btnRemoveConection = new System.Windows.Forms.Button();
             this.btnRefreshDB = new System.Windows.Forms.Button();
+            this.btnMigrar = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pcRefresh)).BeginInit();
             this.SuspendLayout();
             // 
@@ -223,12 +224,23 @@
             this.btnRefreshDB.UseVisualStyleBackColor = false;
             this.btnRefreshDB.Click += new System.EventHandler(this.btnRefreshDB_Click);
             // 
+            // btnMigrar
+            // 
+            this.btnMigrar.Location = new System.Drawing.Point(510, 10);
+            this.btnMigrar.Name = "btnMigrar";
+            this.btnMigrar.Size = new System.Drawing.Size(128, 32);
+            this.btnMigrar.TabIndex = 19;
+            this.btnMigrar.Text = "Migrar Base de Datos";
+            this.btnMigrar.UseVisualStyleBackColor = true;
+            this.btnMigrar.Click += new System.EventHandler(this.btnMigrar_Click);
+            // 
             // Sistema
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Window;
             this.ClientSize = new System.Drawing.Size(861, 430);
+            this.Controls.Add(this.btnMigrar);
             this.Controls.Add(this.pcRefresh);
             this.Controls.Add(this.pbSistema);
             this.Controls.Add(this.btnRemoveConection);
@@ -274,6 +286,7 @@
         private System.Windows.Forms.Button btnRemoveConection;
         private System.Windows.Forms.ProgressBar pbSistema;
         private System.Windows.Forms.PictureBox pcRefresh;
+        private System.Windows.Forms.Button btnMigrar;
     }
 }
 

@@ -151,6 +151,12 @@
     <Compile Include="FormInsert.Designer.cs">
       <DependentUpon>FormInsert.cs</DependentUpon>
     </Compile>
+    <Compile Include="formMigracion.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="formMigracion.Designer.cs">
+      <DependentUpon>formMigracion.cs</DependentUpon>
+    </Compile>
     <Compile Include="FormMustChangePassword.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -201,6 +207,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormInsert.resx">
       <DependentUpon>FormInsert.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="formMigracion.resx">
+      <DependentUpon>formMigracion.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormMustChangePassword.resx">
       <DependentUpon>FormMustChangePassword.cs</DependentUpon>

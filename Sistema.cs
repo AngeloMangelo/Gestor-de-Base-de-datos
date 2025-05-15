@@ -181,25 +181,31 @@ namespace BaseDeDatosSQL
             btnSearchDB.Enabled = false;
             treeViewAsistente.Enabled = false;
             rtbQuery.Enabled = false;
-            pbSistema.Visible = true; 
-            pbSistema.Style = ProgressBarStyle.Marquee; 
+            pbSistema.Visible = true;
+            pbSistema.Style = ProgressBarStyle.Marquee;
 
             pcRefresh.Image = Properties.Resources.refreshgif;
             pcRefresh.Visible = true;
-            pcRefresh.Enabled = true; 
+            pcRefresh.Enabled = true;
             pcRefresh.BringToFront();
-
 
             try
             {
-                await Task.Run(() => Actualizar()); 
+                Userdata conexionSeleccionada = null;
+
+                // Obtener la conexión seleccionada del TreeView
+                if (treeViewAsistente.SelectedNode?.Tag is Userdata userdata)
+                {
+                    conexionSeleccionada = userdata;
+                }
+
+                await Task.Run(() => Actualizar(conexionSeleccionada));
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
             }
-            finally 
+            finally
             {
                 btnRemoveConection.Enabled = true;
                 btnRefreshDB.Enabled = true;
@@ -212,38 +218,74 @@ namespace BaseDeDatosSQL
                 pcRefresh.Visible = false;
                 pcRefresh.Enabled = false;
             }
-            
         }
 
-        private void Actualizar()
+        private void Actualizar(Userdata conexionSeleccionada = null)
         {
-            this.Invoke((MethodInvoker)delegate // Esto es necesario para actualizar la UI desde un hilo diferente
+            this.Invoke((MethodInvoker)delegate
             {
-                
-                treeViewAsistente.Nodes.Clear(); // Limpiar todo antes de recargar
+                treeViewAsistente.BeginUpdate();
 
-                foreach (var conexionData in conexionesActivas)
+                if (conexionSeleccionada != null)
                 {
-                    DbConnection conexion = accesoSQLServer.GetDBConnection(
-                      conexionData.SistemaGestor,
-                      conexionData.Servidor,
-                      conexionData.Usuario,
-                      conexionData.Contraseña,
-                      conexionData.BaseDeDatos,
-                      conexionData.Ruta
-                        );
+                    // 1. Buscar y eliminar el nodo existente de la conexión
+                    TreeNode nodoExistente = treeViewAsistente.Nodes
+                        .Cast<TreeNode>()
+                        .FirstOrDefault(n => n.Tag is Userdata data
+                            && data.Servidor == conexionSeleccionada.Servidor
+                            && data.SistemaGestor == conexionSeleccionada.SistemaGestor);
+
+                    if (nodoExistente != null)
+                    {
+                        treeViewAsistente.Nodes.Remove(nodoExistente);
+                    }
+
+                    // 2. Recargar solo la conexión seleccionada
+                    DbConnection nuevaConexion = accesoSQLServer.GetDBConnection(
+                        conexionSeleccionada.SistemaGestor,
+                        conexionSeleccionada.Servidor,
+                        conexionSeleccionada.Usuario,
+                        conexionSeleccionada.Contraseña,
+                        conexionSeleccionada.BaseDeDatos,
+                        conexionSeleccionada.Ruta
+                    );
 
                     accesoSQLServer.CargarServidores(
                         treeViewAsistente,
-                        conexion,
-                        conexionData.SistemaGestor,
-                        clearTreeView: false, // No limpiar después de la primera carga
-                        userdata: conexionData
-                      );
+                        nuevaConexion,
+                        conexionSeleccionada.SistemaGestor,
+                        clearTreeView: false,
+                        userdata: conexionSeleccionada
+                    );
                 }
-                //MessageBox.Show("Conexiones actualizadas correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            });
+                else
+                {
+                    // 3. Lógica original: Recargar todas las conexiones
+                    treeViewAsistente.Nodes.Clear();
 
+                    foreach (var conexionData in conexionesActivas)
+                    {
+                        DbConnection conexion = accesoSQLServer.GetDBConnection(
+                            conexionData.SistemaGestor,
+                            conexionData.Servidor,
+                            conexionData.Usuario,
+                            conexionData.Contraseña,
+                            conexionData.BaseDeDatos,
+                            conexionData.Ruta
+                        );
+
+                        accesoSQLServer.CargarServidores(
+                            treeViewAsistente,
+                            conexion,
+                            conexionData.SistemaGestor,
+                            clearTreeView: false,
+                            userdata: conexionData
+                        );
+                    }
+                }
+
+                treeViewAsistente.EndUpdate();
+            });
         }
         private void treeViewAsistente_MouseClick(object sender, MouseEventArgs e)
         {
@@ -563,6 +605,12 @@ namespace BaseDeDatosSQL
 
             MessageBox.Show("Conexión eliminada correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
             btnRemoveConection.Enabled = false;
+        }
+
+        private void btnMigrar_Click(object sender, EventArgs e)
+        {
+            formMigracion migracion = new formMigracion(userdata);
+            migracion.ShowDialog();
         }
     }
 }
