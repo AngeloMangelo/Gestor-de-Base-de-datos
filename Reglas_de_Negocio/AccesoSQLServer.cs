@@ -42,7 +42,8 @@ namespace Reglas_de_Negocio
                     conexion = new SqlConnection($"Data Source={servidor};Initial Catalog=master;User ID={usuario};Password={contraseña};MultipleActiveResultSets=true;");
                     break;
                 case "mysql":
-                    conexion = new MySqlConnection($"Server={servidor};User ID={usuario};Password={contraseña};");
+                    string bd = string.IsNullOrEmpty(Database) ? "" : $"Database={Database};";
+                    conexion = new MySqlConnection($"Server={servidor};{bd}User ID={usuario};Password={contraseña};");
                     break;
                 case "postgresql":
                     conexion = new NpgsqlConnection($"Host={servidor};Username={usuario};Password={contraseña};Database={Database}");
