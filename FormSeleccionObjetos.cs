@@ -20,9 +20,37 @@ namespace BaseDeDatosSQL
         public FormSeleccionObjetos(Userdata origen, Userdata destino)
         {
             InitializeComponent();
+            rbTodos.Checked = true;
+            this.Load += FormSeleccionObjetos_Load;
+            rbTodos.CheckedChanged += rbModoSeleccion_CheckedChanged;
+            rbSeleccionManual.CheckedChanged += rbModoSeleccion_CheckedChanged;
+
             this.origen = origen;
             this.destino = destino;
         }
+
+        private void rbModoSeleccion_CheckedChanged(object sender, EventArgs e)
+        {
+            bool esManual = rbSeleccionManual.Checked;
+
+            clbTablas.Enabled = esManual;
+            clbVistas.Enabled = esManual;
+            clbProcedimientos.Enabled = esManual;
+
+            if (!esManual)
+            {
+                // Seleccionar todos automáticamente
+                for (int i = 0; i < clbTablas.Items.Count; i++)
+                    clbTablas.SetItemChecked(i, true);
+
+                for (int i = 0; i < clbVistas.Items.Count; i++)
+                    clbVistas.SetItemChecked(i, true);
+
+                for (int i = 0; i < clbProcedimientos.Items.Count; i++)
+                    clbProcedimientos.SetItemChecked(i, true);
+            }
+        }
+
 
         private void FormSeleccionObjetos_Load(object sender, EventArgs e)
         {
@@ -62,6 +90,8 @@ namespace BaseDeDatosSQL
                         return;
                 }
 
+                cbBasesDeDatos.Items.Clear(); // evita duplicados
+
                 using (DbDataReader reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -79,6 +109,10 @@ namespace BaseDeDatosSQL
             {
                 MessageBox.Show("Error al cargar bases: " + ex.Message);
             }
+
+            rbTodos.Checked = true;
+            rbModoSeleccion_CheckedChanged(null, null); // <-- ejecuta lógica inicial
+
         }
 
         private void cbBasesDeDatos_SelectedIndexChanged(object sender, EventArgs e)
@@ -180,6 +214,19 @@ namespace BaseDeDatosSQL
             {
                 MessageBox.Show("Error al cargar objetos: " + ex.Message);
             }
+
+            if (rbTodos.Checked)
+            {
+                for (int i = 0; i < clbTablas.Items.Count; i++)
+                    clbTablas.SetItemChecked(i, true);
+
+                for (int i = 0; i < clbVistas.Items.Count; i++)
+                    clbVistas.SetItemChecked(i, true);
+
+                for (int i = 0; i < clbProcedimientos.Items.Count; i++)
+                    clbProcedimientos.SetItemChecked(i, true);
+            }
+
         }
 
         private void btnMigrar_Click(object sender, EventArgs e)
