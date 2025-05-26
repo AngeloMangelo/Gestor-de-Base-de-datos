@@ -29,8 +29,8 @@ namespace Reglas_de_Negocio
                 return $"-- La tabla {nombreTabla} no tiene columnas o no se encontró.";
 
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"-- Tabla: {nombreTabla}");
 
+            // Encabezado según motor
             switch (gestorDestino.ToLower())
             {
                 case "mysql":
@@ -47,20 +47,27 @@ namespace Reglas_de_Negocio
                     return $"-- Gestor no soportado: {gestorDestino}";
             }
 
+            // Cuerpo: columnas
             for (int i = 0; i < columnas.Count; i++)
             {
                 var col = columnas[i];
                 string linea = FormatearColumna(col, gestorDestino);
                 sb.Append("    " + linea);
-                if (i < columnas.Count - 1 || col.EsPrimaryKey)
+
+                // Agregar coma solo si NO es la última columna
+                if (i < columnas.Count - 1)
                     sb.Append(",");
+
                 sb.AppendLine();
             }
 
-            // Llave primaria
+            // Llave primaria: si hay columnas, agregamos coma antes del PRIMARY KEY
             var claves = columnas.FindAll(c => c.EsPrimaryKey);
             if (claves.Count > 0)
             {
+                if (columnas.Count > 0)
+                    sb.AppendLine(",");
+
                 string camposPK = string.Join(", ", claves.ConvertAll(c => FormatearIdentificador(c.Nombre, gestorDestino)));
                 sb.AppendLine($"    PRIMARY KEY ({camposPK})");
             }
@@ -68,6 +75,7 @@ namespace Reglas_de_Negocio
             sb.AppendLine(");");
             return sb.ToString();
         }
+
 
         private List<ColumnaTabla> ObtenerColumnasDesdeSQLServer(string nombreTabla)
         {
@@ -83,6 +91,8 @@ SELECT
     c.name AS Columna,
     t.name AS TipoDato,
     c.max_length AS Tamaño,
+    c.precision AS Precision,
+    c.scale AS Escala,
     c.is_nullable AS EsNula,
     ISNULL(i.is_primary_key, 0) AS EsPK
 FROM 
@@ -110,6 +120,8 @@ ORDER BY
                                 Nombre = reader["Columna"].ToString(),
                                 Tipo = reader["TipoDato"].ToString(),
                                 Tamaño = Convert.ToInt32(reader["Tamaño"]),
+                                Precision = Convert.ToByte(reader["Precision"]),
+                                Escala = Convert.ToByte(reader["Escala"]),
                                 EsNula = Convert.ToBoolean(reader["EsNula"]),
                                 EsPrimaryKey = Convert.ToBoolean(reader["EsPK"])
                             });
@@ -122,7 +134,7 @@ ORDER BY
 
         private string FormatearColumna(ColumnaTabla col, string gestor)
         {
-            string tipoConvertido = ConvertirTipo(col.Tipo, col.Tamaño, gestor);
+            string tipoConvertido = ConvertirTipo(col.Tipo, col.Tamaño, gestor, col.Precision, col.Escala);
             string nulo = col.EsNula ? "" : " NOT NULL";
 
             return $"{FormatearIdentificador(col.Nombre, gestor)} {tipoConvertido}{nulo}";
@@ -140,46 +152,77 @@ ORDER BY
             }
         }
 
-        private string ConvertirTipo(string tipoSqlServer, int tamaño, string gestor)
+        private string ConvertirTipo(string tipoSqlServer, int tamaño, string gestor, byte precision = 0, byte escala = 0)
         {
             tipoSqlServer = tipoSqlServer.ToLower();
-            string tipoDestino = "TEXT"; // por defecto
+            string tipoDestino = "TEXT";
 
             switch (gestor.ToLower())
             {
                 case "mysql":
                     if (tipoSqlServer.Contains("int")) tipoDestino = "INT";
-                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar") tipoDestino = $"VARCHAR({tamaño})";
+                    else if (tipoSqlServer == "bit") tipoDestino = "TINYINT(1)";
+                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar")
+                        tipoDestino = $"VARCHAR({(tamaño == -1 ? 255 : tamaño / 2)})";
+                    else if (tipoSqlServer == "text" || tipoSqlServer == "ntext") tipoDestino = "TEXT";
                     else if (tipoSqlServer == "datetime") tipoDestino = "DATETIME";
+                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric")
+                        tipoDestino = $"DECIMAL({precision},{escala})";
+                    else if (tipoSqlServer == "float" || tipoSqlServer == "real") tipoDestino = "FLOAT";
+                    else if (tipoSqlServer == "varbinary") tipoDestino = "BLOB";
                     break;
 
                 case "postgresql":
                     if (tipoSqlServer.Contains("int")) tipoDestino = "INTEGER";
-                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar") tipoDestino = $"VARCHAR({tamaño})";
+                    else if (tipoSqlServer == "bit") tipoDestino = "BOOLEAN";
+                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar")
+                        tipoDestino = $"VARCHAR({(tamaño == -1 ? 255 : tamaño / 2)})";
+                    else if (tipoSqlServer == "text" || tipoSqlServer == "ntext") tipoDestino = "TEXT";
                     else if (tipoSqlServer == "datetime") tipoDestino = "TIMESTAMP";
+                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric")
+                        tipoDestino = $"NUMERIC({precision},{escala})";
+                    else if (tipoSqlServer == "float" || tipoSqlServer == "real") tipoDestino = "FLOAT8";
+                    else if (tipoSqlServer == "varbinary") tipoDestino = "BYTEA";
                     break;
 
                 case "oracle":
                     if (tipoSqlServer.Contains("int")) tipoDestino = "NUMBER";
-                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar") tipoDestino = $"VARCHAR2({tamaño})";
+                    else if (tipoSqlServer == "bit") tipoDestino = "NUMBER(1)";
+                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar")
+                        tipoDestino = $"VARCHAR2({(tamaño == -1 ? 255 : tamaño / 2)})";
+                    else if (tipoSqlServer == "text" || tipoSqlServer == "ntext") tipoDestino = "CLOB";
                     else if (tipoSqlServer == "datetime") tipoDestino = "DATE";
+                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric")
+                        tipoDestino = $"NUMBER({precision},{escala})";
+                    else if (tipoSqlServer == "float" || tipoSqlServer == "real") tipoDestino = "FLOAT";
+                    else if (tipoSqlServer == "varbinary") tipoDestino = "BLOB";
                     break;
 
                 case "firebird":
                     if (tipoSqlServer.Contains("int")) tipoDestino = "INTEGER";
-                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar") tipoDestino = $"VARCHAR({tamaño})";
+                    else if (tipoSqlServer == "bit") tipoDestino = "SMALLINT";
+                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar")
+                        tipoDestino = $"VARCHAR({(tamaño == -1 ? 255 : tamaño / 2)})";
+                    else if (tipoSqlServer == "text" || tipoSqlServer == "ntext") tipoDestino = "BLOB SUB_TYPE TEXT";
                     else if (tipoSqlServer == "datetime") tipoDestino = "TIMESTAMP";
+                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric")
+                        tipoDestino = $"NUMERIC({precision},{escala})";
+                    else if (tipoSqlServer == "float" || tipoSqlServer == "real") tipoDestino = "FLOAT";
+                    else if (tipoSqlServer == "varbinary") tipoDestino = "BLOB";
                     break;
             }
 
             return tipoDestino;
         }
 
+
         private class ColumnaTabla
         {
             public string Nombre { get; set; }
             public string Tipo { get; set; }
             public int Tamaño { get; set; }
+            public byte Precision { get; set; }
+            public byte Escala { get; set; }
             public bool EsNula { get; set; }
             public bool EsPrimaryKey { get; set; }
         }

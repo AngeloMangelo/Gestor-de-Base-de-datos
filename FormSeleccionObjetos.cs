@@ -253,6 +253,18 @@ namespace BaseDeDatosSQL
 
             try
             {
+                // Crear base de datos en destino si no existe
+                destino.BaseDeDatos = cbBasesDeDatos.SelectedItem.ToString();
+
+                bool creada = EjecutorSQLDestino.CrearBaseDeDatos(destino);
+                if (!creada)
+                {
+                    MessageBox.Show("No se pudo crear la base de datos destino.");
+                    return;
+                }
+
+                
+
                 MigradorEstructura migrador = new MigradorEstructura(
                     origen.Servidor,
                     origen.Usuario,
@@ -262,14 +274,23 @@ namespace BaseDeDatosSQL
 
                 StringBuilder resultados = new StringBuilder();
 
+                destino.BaseDeDatos = cbBasesDeDatos.SelectedItem.ToString();
                 foreach (var tabla in tablasSeleccionadas)
                 {
                     string script = migrador.GenerarCreateTable(tabla, destino.SistemaGestor);
-                    resultados.AppendLine(script);
+                    bool ok = EjecutorSQLDestino.EjecutarScript(destino, script);
+
+                    rtbResultados.AppendText(script + "\n\n");
+                    if (!ok)
+                        rtbResultados.AppendText("-- ERROR AL EJECUTAR EN DESTINO --\n\n");
+
+                    resultados.AppendLine(); // espacio entre scripts
                 }
 
-                // Aquí podrías mostrar el script en un RichTextBox si quieres
-                MessageBox.Show("Migración simulada exitosa. Se generaron los scripts.", "Migración OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                rtbResultados.Clear();
+                rtbResultados.Text = resultados.ToString();
+
+                MessageBox.Show("Scripts generados correctamente.", "Migración OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
