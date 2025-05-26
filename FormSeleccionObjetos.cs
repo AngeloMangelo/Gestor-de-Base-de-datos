@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Text;
 using System.Windows.Forms;
 using Reglas_de_Negocio;
 
@@ -231,6 +232,10 @@ namespace BaseDeDatosSQL
 
         private void btnMigrar_Click(object sender, EventArgs e)
         {
+            tablasSeleccionadas.Clear();
+            vistasSeleccionadas.Clear();
+            procedimientosSeleccionados.Clear();
+
             foreach (var item in clbTablas.CheckedItems)
                 tablasSeleccionadas.Add(item.ToString());
 
@@ -246,8 +251,31 @@ namespace BaseDeDatosSQL
                 return;
             }
 
-            this.DialogResult = DialogResult.OK;
-            this.Close();
+            try
+            {
+                MigradorEstructura migrador = new MigradorEstructura(
+                    origen.Servidor,
+                    origen.Usuario,
+                    origen.Contraseña,
+                    cbBasesDeDatos.SelectedItem.ToString()
+                );
+
+                StringBuilder resultados = new StringBuilder();
+
+                foreach (var tabla in tablasSeleccionadas)
+                {
+                    string script = migrador.GenerarCreateTable(tabla, destino.SistemaGestor);
+                    resultados.AppendLine(script);
+                }
+
+                // Aquí podrías mostrar el script en un RichTextBox si quieres
+                MessageBox.Show("Migración simulada exitosa. Se generaron los scripts.", "Migración OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error durante la migración: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
+
     }
 }
