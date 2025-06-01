@@ -59,11 +59,12 @@
             this.clbTablas.FormattingEnabled = true;
             this.clbTablas.Location = new System.Drawing.Point(11, 19);
             this.clbTablas.Name = "clbTablas";
-            this.clbTablas.Size = new System.Drawing.Size(267, 229);
+            this.clbTablas.Size = new System.Drawing.Size(464, 229);
             this.clbTablas.TabIndex = 1;
             // 
             // clbVistas
             // 
+            this.clbVistas.Enabled = false;
             this.clbVistas.FormattingEnabled = true;
             this.clbVistas.Location = new System.Drawing.Point(11, 19);
             this.clbVistas.Name = "clbVistas";
@@ -72,6 +73,7 @@
             // 
             // clbProcedimientos
             // 
+            this.clbProcedimientos.Enabled = false;
             this.clbProcedimientos.FormattingEnabled = true;
             this.clbProcedimientos.Location = new System.Drawing.Point(11, 19);
             this.clbProcedimientos.Name = "clbProcedimientos";
@@ -92,7 +94,7 @@
             this.groupBox1.Controls.Add(this.clbTablas);
             this.groupBox1.Location = new System.Drawing.Point(20, 92);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(284, 259);
+            this.groupBox1.Size = new System.Drawing.Size(487, 259);
             this.groupBox1.TabIndex = 8;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Tablas";
@@ -100,22 +102,24 @@
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.clbVistas);
-            this.groupBox2.Location = new System.Drawing.Point(310, 92);
+            this.groupBox2.Location = new System.Drawing.Point(535, 92);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(284, 127);
             this.groupBox2.TabIndex = 9;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Vistas";
+            this.groupBox2.Visible = false;
             // 
             // groupBox3
             // 
             this.groupBox3.Controls.Add(this.clbProcedimientos);
-            this.groupBox3.Location = new System.Drawing.Point(310, 225);
+            this.groupBox3.Location = new System.Drawing.Point(535, 234);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(284, 126);
             this.groupBox3.TabIndex = 10;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Procedimientos Almacenados";
+            this.groupBox3.Visible = false;
             // 
             // btnMigrarSeleccionados
             // 

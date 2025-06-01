@@ -253,7 +253,6 @@ namespace BaseDeDatosSQL
 
             try
             {
-                // Crear base de datos en destino si no existe
                 destino.BaseDeDatos = cbBasesDeDatos.SelectedItem.ToString();
 
                 bool creada = EjecutorSQLDestino.CrearBaseDeDatos(destino);
@@ -263,48 +262,81 @@ namespace BaseDeDatosSQL
                     return;
                 }
 
-
-
                 MigradorEstructura migrador = new MigradorEstructura(
                     origen.Servidor,
                     origen.Usuario,
                     origen.Contraseña,
-                    cbBasesDeDatos.SelectedItem.ToString());
-
-
-
+                    cbBasesDeDatos.SelectedItem.ToString()
+                );
 
                 MigradorDatos migradorDatos = new MigradorDatos(
                     origen.Servidor,
                     origen.Usuario,
                     origen.Contraseña,
-                    cbBasesDeDatos.SelectedItem.ToString());
+                    cbBasesDeDatos.SelectedItem.ToString()
+                );
 
                 StringBuilder resultados = new StringBuilder();
 
-                destino.BaseDeDatos = cbBasesDeDatos.SelectedItem.ToString();
+                // Desactivar claves foráneas si es MySQL
+                if (destino.SistemaGestor.ToLower() == "mysql")
+                {
+                    using (var conn = new MySql.Data.MySqlClient.MySqlConnection(
+                        $"Server={destino.Servidor};Database={destino.BaseDeDatos};User ID={destino.Usuario};Password={destino.Contraseña};"))
+                    {
+                        conn.Open();
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = "SET FOREIGN_KEY_CHECKS = 0;";
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        conn.Close();
+                    }
+                }
+
                 foreach (var tabla in tablasSeleccionadas)
                 {
                     string script = migrador.GenerarCreateTable(tabla, destino.SistemaGestor);
-                    migradorDatos.MigrarDatos(tabla, destino);
+
+                    // PRIMERO crear la tabla
                     bool ok = EjecutorSQLDestino.EjecutarScript(destino, script);
 
-                    rtbResultados.AppendText(script + "\n\n");
-                    if (!ok)
-                        rtbResultados.AppendText("-- ERROR AL EJECUTAR EN DESTINO --\n\n");
+                    // SI se creó bien, entonces migrar los datos
+                    if (ok)
+                        migradorDatos.MigrarDatos(tabla, destino);
+                    else
+                        resultados.AppendLine($"-- ERROR al crear la tabla {tabla}, datos no migrados");
 
-                    resultados.AppendLine(); // espacio entre scripts
+                    rtbResultados.AppendText(script + "\n\n");
                 }
 
-                rtbResultados.Clear();
+                // Reactivar claves foráneas si es MySQL
+                if (destino.SistemaGestor.ToLower() == "mysql")
+                {
+                    using (var conn = new MySql.Data.MySqlClient.MySqlConnection(
+                        $"Server={destino.Servidor};Database={destino.BaseDeDatos};User ID={destino.Usuario};Password={destino.Contraseña};"))
+                    {
+                        conn.Open();
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = "SET FOREIGN_KEY_CHECKS = 1;";
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        conn.Close();
+                    }
+                }
+
                 rtbResultados.Text = resultados.ToString();
 
-                MessageBox.Show("Scripts generados correctamente.", "Migración OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Migración completada.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error durante la migración: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
     }
 }
