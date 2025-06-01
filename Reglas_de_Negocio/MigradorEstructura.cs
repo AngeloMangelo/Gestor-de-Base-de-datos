@@ -94,7 +94,8 @@ SELECT
     c.precision AS Precision,
     c.scale AS Escala,
     c.is_nullable AS EsNula,
-    ISNULL(i.is_primary_key, 0) AS EsPK
+    ISNULL(i.is_primary_key, 0) AS EsPK,
+    c.is_identity AS EsAutoIncrement
 FROM 
     sys.columns c
 JOIN 
@@ -107,6 +108,7 @@ WHERE
     c.object_id = OBJECT_ID(@tabla)
 ORDER BY 
     c.column_id;";
+
 
                 using (SqlCommand cmd = new SqlCommand(query, conn))
                 {
@@ -123,7 +125,9 @@ ORDER BY
                                 Precision = Convert.ToByte(reader["Precision"]),
                                 Escala = Convert.ToByte(reader["Escala"]),
                                 EsNula = Convert.ToBoolean(reader["EsNula"]),
-                                EsPrimaryKey = Convert.ToBoolean(reader["EsPK"])
+                                EsPrimaryKey = Convert.ToBoolean(reader["EsPK"]),
+                                EsAutoIncrement = Convert.ToBoolean(reader["EsAutoIncrement"])
+
                             });
                         }
                     }
@@ -136,9 +140,17 @@ ORDER BY
         {
             string tipoConvertido = ConvertirTipo(col.Tipo, col.Tamaño, gestor, col.Precision, col.Escala);
             string nulo = col.EsNula ? "" : " NOT NULL";
+            string extra = "";
 
-            return $"{FormatearIdentificador(col.Nombre, gestor)} {tipoConvertido}{nulo}";
+            // Soporte para AUTO_INCREMENT solo para MySQL
+            if (col.EsAutoIncrement && gestor.ToLower() == "mysql")
+            {
+                extra = " AUTO_INCREMENT";
+            }
+
+            return $"{FormatearIdentificador(col.Nombre, gestor)} {tipoConvertido}{nulo}{extra}";
         }
+
 
         private string FormatearIdentificador(string nombre, string gestor)
         {
@@ -225,6 +237,8 @@ ORDER BY
             public byte Escala { get; set; }
             public bool EsNula { get; set; }
             public bool EsPrimaryKey { get; set; }
+            public bool EsAutoIncrement { get; set; }
+
         }
     }
 }
