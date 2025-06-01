@@ -263,14 +263,22 @@ namespace BaseDeDatosSQL
                     return;
                 }
 
-                
+
 
                 MigradorEstructura migrador = new MigradorEstructura(
                     origen.Servidor,
                     origen.Usuario,
                     origen.Contraseña,
-                    cbBasesDeDatos.SelectedItem.ToString()
-                );
+                    cbBasesDeDatos.SelectedItem.ToString());
+
+
+
+
+                MigradorDatos migradorDatos = new MigradorDatos(
+                    origen.Servidor,
+                    origen.Usuario,
+                    origen.Contraseña,
+                    cbBasesDeDatos.SelectedItem.ToString());
 
                 StringBuilder resultados = new StringBuilder();
 
@@ -278,6 +286,7 @@ namespace BaseDeDatosSQL
                 foreach (var tabla in tablasSeleccionadas)
                 {
                     string script = migrador.GenerarCreateTable(tabla, destino.SistemaGestor);
+                    migradorDatos.MigrarDatos(tabla, destino);
                     bool ok = EjecutorSQLDestino.EjecutarScript(destino, script);
 
                     rtbResultados.AppendText(script + "\n\n");
@@ -297,6 +306,5 @@ namespace BaseDeDatosSQL
                 MessageBox.Show("Error durante la migración: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
     }
 }

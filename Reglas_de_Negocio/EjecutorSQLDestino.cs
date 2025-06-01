@@ -69,6 +69,7 @@ namespace BaseDeDatosSQL
                 string gestor = destino.SistemaGestor.ToLower();
                 string baseDeDatos = destino.BaseDeDatos;
                 string cadenaAdmin = "";
+                 
 
                 switch (gestor)
                 {
