@@ -73,8 +73,48 @@ namespace Reglas_de_Negocio
             }
 
             sb.AppendLine(");");
+
+            // === LLAVES FORÁNEAS (solo si destino es compatible)
+            var fks = ObtenerLlavesForaneas(nombreTabla);
+            if (fks.Count > 0)
+            {
+                sb.AppendLine(); // espacio
+
+                foreach (var fk in fks)
+                {
+                    string alter = GenerarScriptFK(fk, gestorDestino);
+                    sb.AppendLine(alter);
+                }
+            }
+
             return sb.ToString();
         }
+
+        private string GenerarScriptFK(ForeignKey fk, string gestor)
+        {
+            string tabla = FormatearIdentificador(fk.TablaOrigen, gestor);
+            string columna = FormatearIdentificador(fk.ColumnaOrigen, gestor);
+            string refTabla = FormatearIdentificador(fk.TablaReferencia, gestor);
+            string refColumna = FormatearIdentificador(fk.ColumnaReferencia, gestor);
+            string constraint = fk.NombreConstraint;
+
+            switch (gestor.ToLower())
+            {
+                case "mysql":
+                    return $"ALTER TABLE {tabla} ADD CONSTRAINT `{constraint}` FOREIGN KEY ({columna}) REFERENCES {refTabla}({refColumna});";
+
+                case "postgresql":
+                    return $"ALTER TABLE {tabla} ADD CONSTRAINT \"{constraint}\" FOREIGN KEY ({columna}) REFERENCES {refTabla}({refColumna});";
+
+                case "oracle":
+                case "firebird":
+                    return $"ALTER TABLE {tabla} ADD CONSTRAINT {constraint} FOREIGN KEY ({columna}) REFERENCES {refTabla}({refColumna});";
+
+                default:
+                    return $"-- FOREIGN KEY no soportado para {gestor}";
+            }
+        }
+
 
 
         private List<ColumnaTabla> ObtenerColumnasDesdeSQLServer(string nombreTabla)
@@ -135,6 +175,53 @@ ORDER BY
             }
             return columnas;
         }
+
+        private List<ForeignKey> ObtenerLlavesForaneas(string tabla)
+        {
+            List<ForeignKey> fks = new List<ForeignKey>();
+            string connStr = $"Data Source={servidor};Initial Catalog={baseDatos};User ID={usuario};Password={contraseña};";
+
+            using (SqlConnection conn = new SqlConnection(connStr))
+            {
+                conn.Open();
+
+                string query = @"
+SELECT 
+    fk.name AS ConstraintName,
+    OBJECT_NAME(fkc.parent_object_id) AS TablaOrigen,
+    COL_NAME(fkc.parent_object_id, fkc.parent_column_id) AS ColumnaOrigen,
+    OBJECT_NAME(fkc.referenced_object_id) AS TablaReferencia,
+    COL_NAME(fkc.referenced_object_id, fkc.referenced_column_id) AS ColumnaReferencia
+FROM 
+    sys.foreign_keys fk
+JOIN 
+    sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
+WHERE 
+    OBJECT_NAME(fk.parent_object_id) = @tabla;";
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@tabla", tabla);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            fks.Add(new ForeignKey
+                            {
+                                NombreConstraint = reader["ConstraintName"].ToString(),
+                                TablaOrigen = reader["TablaOrigen"].ToString(),
+                                ColumnaOrigen = reader["ColumnaOrigen"].ToString(),
+                                TablaReferencia = reader["TablaReferencia"].ToString(),
+                                ColumnaReferencia = reader["ColumnaReferencia"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+
+            return fks;
+        }
+
 
         private string FormatearColumna(ColumnaTabla col, string gestor)
         {
@@ -240,5 +327,15 @@ ORDER BY
             public bool EsAutoIncrement { get; set; }
 
         }
+
+        private class ForeignKey
+        {
+            public string TablaOrigen { get; set; }
+            public string ColumnaOrigen { get; set; }
+            public string TablaReferencia { get; set; }
+            public string ColumnaReferencia { get; set; }
+            public string NombreConstraint { get; set; }
+        }
+
     }
 }
