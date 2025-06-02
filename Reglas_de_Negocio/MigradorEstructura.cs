@@ -140,7 +140,8 @@ SELECT
     c.scale AS Escala,
     c.is_nullable AS EsNula,
     ISNULL(i.is_primary_key, 0) AS EsPK,
-    c.is_identity AS EsAutoIncrement
+    c.is_identity AS EsAutoIncrement,
+    dc.definition AS ValorPorDefecto
 FROM 
     sys.columns c
 JOIN 
@@ -149,10 +150,13 @@ LEFT JOIN
     sys.index_columns ic ON c.object_id = ic.object_id AND c.column_id = ic.column_id
 LEFT JOIN 
     sys.indexes i ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+LEFT JOIN 
+    sys.default_constraints dc ON c.default_object_id = dc.object_id
 WHERE 
     c.object_id = OBJECT_ID(@tabla)
 ORDER BY 
-    c.column_id;";
+    c.column_id;
+";
 
                 using (SqlCommand cmd = new SqlCommand(query, conn))
                 {
@@ -170,7 +174,9 @@ ORDER BY
                                 Escala = Convert.ToByte(reader["Escala"]),
                                 EsNula = Convert.ToBoolean(reader["EsNula"]),
                                 EsPrimaryKey = Convert.ToBoolean(reader["EsPK"]),
-                                EsAutoIncrement = Convert.ToBoolean(reader["EsAutoIncrement"])
+                                EsAutoIncrement = Convert.ToBoolean(reader["EsAutoIncrement"]),
+                                ValorPorDefecto = reader["ValorPorDefecto"]?.ToString()
+
                             });
                         }
                     }
@@ -188,10 +194,24 @@ ORDER BY
             string extra = "";
 
             if (col.EsAutoIncrement && gestor.ToLower() == "mysql")
-                extra = " AUTO_INCREMENT";
+            {
+                extra += " AUTO_INCREMENT";
+            }
+
+            if (!string.IsNullOrEmpty(col.ValorPorDefecto))
+            {
+                // Elimina paréntesis de SQL Server, y ajusta formatos típicos
+                string def = col.ValorPorDefecto.Trim('(', ')').Replace("'", "").Trim();
+
+                if (char.IsLetter(def.FirstOrDefault()))
+                    def = $"'{def}'"; // probablemente una cadena o función
+
+                extra += $" DEFAULT {def}";
+            }
 
             return $"{FormatearIdentificador(col.Nombre, gestor)} {tipoConvertido}{nulo}{extra}";
         }
+
 
         private string FormatearIdentificador(string nombre, string gestor)
         {
@@ -278,6 +298,8 @@ ORDER BY
             public bool EsNula { get; set; }
             public bool EsPrimaryKey { get; set; }
             public bool EsAutoIncrement { get; set; }
+            public string ValorPorDefecto { get; set; }
+
         }
     }
 }

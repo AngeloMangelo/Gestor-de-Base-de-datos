@@ -278,7 +278,7 @@ namespace BaseDeDatosSQL
 
                 StringBuilder resultados = new StringBuilder();
 
-                // Desactivar claves foráneas si es MySQL
+                // ⚙️ Desactivar claves foráneas (solo si es MySQL)
                 if (destino.SistemaGestor.ToLower() == "mysql")
                 {
                     using (var conn = new MySql.Data.MySqlClient.MySqlConnection(
@@ -290,40 +290,36 @@ namespace BaseDeDatosSQL
                             cmd.CommandText = "SET FOREIGN_KEY_CHECKS = 0;";
                             cmd.ExecuteNonQuery();
                         }
-
-                        conn.Close();
                     }
                 }
 
-                // 🔁 Aplicar orden de dependencias
-                var dependencias = MigradorRelacional.ObtenerDependencias(
-                    tablasSeleccionadas,
-                    origen.Servidor,
-                    origen.Usuario,
-                    origen.Contraseña,
-                    cbBasesDeDatos.SelectedItem.ToString()
-                );
+                rtbResultados.Clear();
 
-                var ordenCorrecto = MigradorRelacional.OrdenarTablasPorDependencias(dependencias);
-
-                foreach (var tabla in ordenCorrecto)
+                foreach (var tabla in tablasSeleccionadas)
                 {
+                    // 🔧 Generar script CREATE TABLE con PK, FK, índices
                     string script = migrador.GenerarCreateTable(tabla, destino.SistemaGestor);
 
-
-                    // PRIMERO crear la tabla
+                    // 🧱 Crear la tabla
                     bool ok = EjecutorSQLDestino.EjecutarScript(destino, script);
-
-                    // SI se creó bien, entonces migrar los datos
-                    if (ok)
-                        migradorDatos.MigrarDatos(tabla, destino);
-                    else
-                        resultados.AppendLine($"-- ERROR al crear la tabla {tabla}, datos no migrados");
-
                     rtbResultados.AppendText(script + "\n\n");
+
+                    if (ok)
+                    {
+                        // 📥 Migrar registros
+                        migradorDatos.MigrarDatos(tabla, destino);
+
+                        // ✅ Validar registros migrados
+                        string validacion = ValidadorMigracion.ValidarConteoRegistros(tabla, origen, destino);
+                        rtbResultados.AppendText(validacion + "\n\n");
+                    }
+                    else
+                    {
+                        rtbResultados.AppendText($"-- ERROR al crear la tabla {tabla}, datos no migrados\n\n");
+                    }
                 }
 
-                // Reactivar claves foráneas si es MySQL
+                // ⚙️ Reactivar claves foráneas (MySQL)
                 if (destino.SistemaGestor.ToLower() == "mysql")
                 {
                     using (var conn = new MySql.Data.MySqlClient.MySqlConnection(
@@ -335,12 +331,8 @@ namespace BaseDeDatosSQL
                             cmd.CommandText = "SET FOREIGN_KEY_CHECKS = 1;";
                             cmd.ExecuteNonQuery();
                         }
-
-                        conn.Close();
                     }
                 }
-
-                rtbResultados.Text = resultados.ToString();
 
                 MessageBox.Show("Migración completada.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -349,6 +341,7 @@ namespace BaseDeDatosSQL
                 MessageBox.Show("Error durante la migración: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
 
 
     }
