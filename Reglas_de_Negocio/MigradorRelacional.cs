@@ -109,13 +109,27 @@ ORDER BY i.index_id, ic.key_ordinal;";
 
                 foreach (var kvp in dict)
                 {
-                    string columnas = string.Join(", ", kvp.Value.Select(c => $"`{c}`"));
+                    string columnas = string.Join(", ", kvp.Value.Select(c =>
+                    {
+                        // 👇 Añade longitud si el nombre sugiere campo de texto
+                        string columnaNormalizada = c.ToLower();
+                        bool requiereLongitud = columnaNormalizada.Contains("name") ||
+                                                columnaNormalizada.Contains("guid") ||
+                                                columnaNormalizada.Contains("node") ||
+                                                columnaNormalizada.Contains("id") ||
+                                                columnaNormalizada.Contains("code");
+
+                        return requiereLongitud ? $"`{c}`(255)" : $"`{c}`";
+                    }));
+
                     indices.Add($"CREATE INDEX `{kvp.Key}` ON `{tabla}` ({columnas});");
+
                 }
             }
 
             return indices;
         }
+
 
 
         public static List<DependenciaTabla> ObtenerDependencias(List<string> tablasSeleccionadas, string servidor, string usuario, string contraseña, string baseDatos)

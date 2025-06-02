@@ -178,6 +178,12 @@ ORDER BY
                                 EsAutoIncrement = Convert.ToBoolean(reader["EsAutoIncrement"]),
                                 ValorPorDefecto = reader["ValorPorDefecto"] != DBNull.Value ? reader["ValorPorDefecto"].ToString() : null
                             });
+                            var nombresIndexados = ObtenerNombresDeColumnasIndexadas(nombreTablaCompleto);
+                            foreach (var col in columnas)
+                            {
+                                col.EsIndexada = nombresIndexados.Contains(col.Nombre, StringComparer.OrdinalIgnoreCase);
+                            }
+
                         }
                     }
                 }
@@ -192,22 +198,57 @@ ORDER BY
             return columnas;
         }
 
+        private List<string> ObtenerNombresDeColumnasIndexadas(string nombreCompleto)
+        {
+            var columnas = new List<string>();
+            string connStr = $"Data Source={servidor};Initial Catalog={baseDatos};User ID={usuario};Password={contraseña};";
+
+            using (var conn = new SqlConnection(connStr))
+            {
+                conn.Open();
+
+                string query = @"
+SELECT DISTINCT COL_NAME(ic.object_id, ic.column_id) AS ColumnName
+FROM sys.index_columns ic
+JOIN sys.indexes i ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+WHERE ic.object_id = OBJECT_ID(@objName)";
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@objName", SqlServerHelper.ConstruirObjectId(nombreCompleto));
+
+                    using (var reader = cmd.ExecuteReader())
+                        while (reader.Read())
+                            columnas.Add(reader.GetString(0));
+                }
+            }
+
+            return columnas;
+        }
+
         private string FormatearColumna(ColumnaTabla col, string gestor)
         {
-            string tipoConvertido = ConvertirTipo(col.Tipo, col.Tamaño, gestor, col.Precision, col.Escala);
+            string tipoConvertido = ConvertirTipo(
+                col.Tipo,
+                col.Tamaño,
+                gestor,
+                col.Precision,
+                col.Escala,
+                col.EsPrimaryKey || col.EsIndexada // clave o índice => cuidado con TEXT/BLOB
+            );
+
             string nulo = col.EsNula ? "" : " NOT NULL";
             string extra = "";
 
             if (col.EsAutoIncrement && gestor.ToLower() == "mysql" && col.EsPrimaryKey)
                 extra += " AUTO_INCREMENT";
 
-
             bool tipoPermiteDefault =
                 !(gestor.ToLower() == "mysql" &&
                  (tipoConvertido.StartsWith("TEXT", StringComparison.OrdinalIgnoreCase) ||
                   tipoConvertido.StartsWith("BLOB", StringComparison.OrdinalIgnoreCase)));
 
-            if (!string.IsNullOrEmpty(col.ValorPorDefecto) && tipoPermiteDefault)
+            if (!string.IsNullOrWhiteSpace(col.ValorPorDefecto) && tipoPermiteDefault)
             {
                 string def = col.ValorPorDefecto.Trim('(', ')').Replace("N'", "").Replace("'", "").Trim();
 
@@ -254,7 +295,7 @@ ORDER BY
             }
         }
 
-        private string ConvertirTipo(string tipoSqlServer, int tamaño, string gestor, byte precision = 0, byte escala = 0)
+        private string ConvertirTipo(string tipoSqlServer, int tamaño, string gestor, byte precision = 0, byte escala = 0, bool esClave = false)
         {
             tipoSqlServer = tipoSqlServer.ToLower();
             string tipoDestino = "TEXT"; // valor por defecto de respaldo
@@ -267,21 +308,23 @@ ORDER BY
                     else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar" || tipoSqlServer == "nchar" || tipoSqlServer == "char")
                     {
                         if (tamaño == -1 || tamaño >= 4000)
-                            tipoDestino = "LONGTEXT";
+                            tipoDestino = esClave ? "VARCHAR(255)" : "LONGTEXT";
                         else if (tamaño > 255)
-                            tipoDestino = "TEXT";
+                            tipoDestino = esClave ? "VARCHAR(255)" : "TEXT";
                         else
                         {
                             int longitudSegura = Math.Max(20, tamaño / 2);
                             tipoDestino = $"VARCHAR({longitudSegura})";
                         }
                     }
-                    else if (tipoSqlServer == "text" || tipoSqlServer == "ntext") tipoDestino = "LONGTEXT";
+                    else if (tipoSqlServer == "text" || tipoSqlServer == "ntext")
+                        tipoDestino = esClave ? "VARCHAR(255)" : "LONGTEXT";
                     else if (tipoSqlServer == "datetime" || tipoSqlServer == "smalldatetime") tipoDestino = "DATETIME";
                     else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric" || tipoSqlServer == "money" || tipoSqlServer == "smallmoney")
                         tipoDestino = $"DECIMAL({(precision == 0 ? 19 : precision)},{escala})";
                     else if (tipoSqlServer == "float" || tipoSqlServer == "real") tipoDestino = "FLOAT";
-                    else if (tipoSqlServer == "varbinary" || tipoSqlServer == "image" || tipoSqlServer == "binary") tipoDestino = "BLOB";
+                    else if (tipoSqlServer == "varbinary" || tipoSqlServer == "image" || tipoSqlServer == "binary")
+                        tipoDestino = "BLOB";
                     break;
 
                 case "postgresql":
@@ -348,6 +391,7 @@ ORDER BY
             public bool EsPrimaryKey { get; set; }
             public bool EsAutoIncrement { get; set; }
             public string ValorPorDefecto { get; set; }
+            public bool EsIndexada { get; set; }
 
         }
     }
