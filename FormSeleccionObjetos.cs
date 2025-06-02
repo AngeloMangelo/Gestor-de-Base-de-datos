@@ -310,6 +310,7 @@ namespace BaseDeDatosSQL
                 {
                     string script = migrador.GenerarCreateTable(tabla, destino.SistemaGestor);
 
+
                     // PRIMERO crear la tabla
                     bool ok = EjecutorSQLDestino.EjecutarScript(destino, script);
 

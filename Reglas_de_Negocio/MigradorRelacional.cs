@@ -68,6 +68,56 @@ WHERE
             return fks;
         }
 
+        public static List<string> ObtenerIndicesNoClustered(string tabla, string servidor, string usuario, string contraseña, string baseDatos)
+        {
+            var indices = new List<string>();
+            string connStr = $"Data Source={servidor};Initial Catalog={baseDatos};User ID={usuario};Password={contraseña};";
+
+            using (var conn = new SqlConnection(connStr))
+            {
+                conn.Open();
+                string query = @"
+SELECT i.name AS IndexName,
+       COL_NAME(ic.object_id, ic.column_id) AS ColumnName
+FROM sys.indexes i
+JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+WHERE i.object_id = OBJECT_ID(@tabla)
+  AND i.is_primary_key = 0
+  AND i.is_unique_constraint = 0
+  AND i.type_desc <> 'HEAP'
+ORDER BY i.index_id, ic.key_ordinal;";
+
+                var dict = new Dictionary<string, List<string>>();
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@tabla", tabla);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var indexName = reader["IndexName"].ToString();
+                            var column = reader["ColumnName"].ToString();
+
+                            if (!dict.ContainsKey(indexName))
+                                dict[indexName] = new List<string>();
+
+                            dict[indexName].Add(column);
+                        }
+                    }
+                }
+
+                foreach (var kvp in dict)
+                {
+                    string columnas = string.Join(", ", kvp.Value.Select(c => $"`{c}`"));
+                    indices.Add($"CREATE INDEX `{kvp.Key}` ON `{tabla}` ({columnas});");
+                }
+            }
+
+            return indices;
+        }
+
+
         public static List<DependenciaTabla> ObtenerDependencias(List<string> tablasSeleccionadas, string servidor, string usuario, string contraseña, string baseDatos)
         {
             var dependencias = new Dictionary<string, DependenciaTabla>();

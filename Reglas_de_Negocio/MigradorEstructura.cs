@@ -72,11 +72,11 @@ namespace Reglas_de_Negocio
 
             sb.AppendLine(");");
 
-            // === LLAVES FORÁNEAS
+            // === CLAVES FORÁNEAS
             var fks = MigradorRelacional.ObtenerLlavesForaneas(nombreTabla, servidor, usuario, contraseña, baseDatos);
             if (fks.Count > 0)
             {
-                sb.AppendLine();
+                sb.AppendLine(); // espacio
 
                 foreach (var fk in fks)
                 {
@@ -85,8 +85,20 @@ namespace Reglas_de_Negocio
                 }
             }
 
+            // === ÍNDICES SECUNDARIOS (non-clustered)
+            var indices = MigradorRelacional.ObtenerIndicesNoClustered(nombreTabla, servidor, usuario, contraseña, baseDatos);
+            if (indices.Count > 0)
+            {
+                sb.AppendLine();
+                foreach (var idx in indices)
+                {
+                    sb.AppendLine(idx);
+                }
+            }
+
             return sb.ToString();
         }
+
 
         private string GenerarScriptFK(MigradorRelacional.ForeignKey fk, string gestor)
         {
@@ -166,6 +178,8 @@ ORDER BY
             }
             return columnas;
         }
+
+
 
         private string FormatearColumna(ColumnaTabla col, string gestor)
         {
