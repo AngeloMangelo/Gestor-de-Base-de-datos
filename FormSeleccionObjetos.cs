@@ -295,7 +295,18 @@ namespace BaseDeDatosSQL
                     }
                 }
 
-                foreach (var tabla in tablasSeleccionadas)
+                // 🔁 Aplicar orden de dependencias
+                var dependencias = MigradorRelacional.ObtenerDependencias(
+                    tablasSeleccionadas,
+                    origen.Servidor,
+                    origen.Usuario,
+                    origen.Contraseña,
+                    cbBasesDeDatos.SelectedItem.ToString()
+                );
+
+                var ordenCorrecto = MigradorRelacional.OrdenarTablasPorDependencias(dependencias);
+
+                foreach (var tabla in ordenCorrecto)
                 {
                     string script = migrador.GenerarCreateTable(tabla, destino.SistemaGestor);
 
@@ -337,6 +348,7 @@ namespace BaseDeDatosSQL
                 MessageBox.Show("Error durante la migración: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
 
     }
 }

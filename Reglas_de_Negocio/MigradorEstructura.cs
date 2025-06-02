@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BaseDeDatosSQL;
 
 namespace Reglas_de_Negocio
 {
@@ -47,21 +48,18 @@ namespace Reglas_de_Negocio
                     return $"-- Gestor no soportado: {gestorDestino}";
             }
 
-            // Cuerpo: columnas
             for (int i = 0; i < columnas.Count; i++)
             {
                 var col = columnas[i];
                 string linea = FormatearColumna(col, gestorDestino);
                 sb.Append("    " + linea);
 
-                // Agregar coma solo si NO es la última columna
                 if (i < columnas.Count - 1)
                     sb.Append(",");
 
                 sb.AppendLine();
             }
 
-            // Llave primaria: si hay columnas, agregamos coma antes del PRIMARY KEY
             var claves = columnas.FindAll(c => c.EsPrimaryKey);
             if (claves.Count > 0)
             {
@@ -74,11 +72,11 @@ namespace Reglas_de_Negocio
 
             sb.AppendLine(");");
 
-            // === LLAVES FORÁNEAS (solo si destino es compatible)
-            var fks = ObtenerLlavesForaneas(nombreTabla);
+            // === LLAVES FORÁNEAS
+            var fks = MigradorRelacional.ObtenerLlavesForaneas(nombreTabla, servidor, usuario, contraseña, baseDatos);
             if (fks.Count > 0)
             {
-                sb.AppendLine(); // espacio
+                sb.AppendLine();
 
                 foreach (var fk in fks)
                 {
@@ -90,7 +88,7 @@ namespace Reglas_de_Negocio
             return sb.ToString();
         }
 
-        private string GenerarScriptFK(ForeignKey fk, string gestor)
+        private string GenerarScriptFK(MigradorRelacional.ForeignKey fk, string gestor)
         {
             string tabla = FormatearIdentificador(fk.TablaOrigen, gestor);
             string columna = FormatearIdentificador(fk.ColumnaOrigen, gestor);
@@ -102,20 +100,15 @@ namespace Reglas_de_Negocio
             {
                 case "mysql":
                     return $"ALTER TABLE {tabla} ADD CONSTRAINT `{constraint}` FOREIGN KEY ({columna}) REFERENCES {refTabla}({refColumna});";
-
                 case "postgresql":
                     return $"ALTER TABLE {tabla} ADD CONSTRAINT \"{constraint}\" FOREIGN KEY ({columna}) REFERENCES {refTabla}({refColumna});";
-
                 case "oracle":
                 case "firebird":
                     return $"ALTER TABLE {tabla} ADD CONSTRAINT {constraint} FOREIGN KEY ({columna}) REFERENCES {refTabla}({refColumna});";
-
                 default:
                     return $"-- FOREIGN KEY no soportado para {gestor}";
             }
         }
-
-
 
         private List<ColumnaTabla> ObtenerColumnasDesdeSQLServer(string nombreTabla)
         {
@@ -126,7 +119,7 @@ namespace Reglas_de_Negocio
             {
                 conn.Open();
 
-                string query = $@"
+                string query = @"
 SELECT 
     c.name AS Columna,
     t.name AS TipoDato,
@@ -149,7 +142,6 @@ WHERE
 ORDER BY 
     c.column_id;";
 
-
                 using (SqlCommand cmd = new SqlCommand(query, conn))
                 {
                     cmd.Parameters.AddWithValue("@tabla", nombreTabla);
@@ -167,7 +159,6 @@ ORDER BY
                                 EsNula = Convert.ToBoolean(reader["EsNula"]),
                                 EsPrimaryKey = Convert.ToBoolean(reader["EsPK"]),
                                 EsAutoIncrement = Convert.ToBoolean(reader["EsAutoIncrement"])
-
                             });
                         }
                     }
@@ -176,68 +167,17 @@ ORDER BY
             return columnas;
         }
 
-        private List<ForeignKey> ObtenerLlavesForaneas(string tabla)
-        {
-            List<ForeignKey> fks = new List<ForeignKey>();
-            string connStr = $"Data Source={servidor};Initial Catalog={baseDatos};User ID={usuario};Password={contraseña};";
-
-            using (SqlConnection conn = new SqlConnection(connStr))
-            {
-                conn.Open();
-
-                string query = @"
-SELECT 
-    fk.name AS ConstraintName,
-    OBJECT_NAME(fkc.parent_object_id) AS TablaOrigen,
-    COL_NAME(fkc.parent_object_id, fkc.parent_column_id) AS ColumnaOrigen,
-    OBJECT_NAME(fkc.referenced_object_id) AS TablaReferencia,
-    COL_NAME(fkc.referenced_object_id, fkc.referenced_column_id) AS ColumnaReferencia
-FROM 
-    sys.foreign_keys fk
-JOIN 
-    sys.foreign_key_columns fkc ON fk.object_id = fkc.constraint_object_id
-WHERE 
-    OBJECT_NAME(fk.parent_object_id) = @tabla;";
-
-                using (SqlCommand cmd = new SqlCommand(query, conn))
-                {
-                    cmd.Parameters.AddWithValue("@tabla", tabla);
-                    using (SqlDataReader reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            fks.Add(new ForeignKey
-                            {
-                                NombreConstraint = reader["ConstraintName"].ToString(),
-                                TablaOrigen = reader["TablaOrigen"].ToString(),
-                                ColumnaOrigen = reader["ColumnaOrigen"].ToString(),
-                                TablaReferencia = reader["TablaReferencia"].ToString(),
-                                ColumnaReferencia = reader["ColumnaReferencia"].ToString()
-                            });
-                        }
-                    }
-                }
-            }
-
-            return fks;
-        }
-
-
         private string FormatearColumna(ColumnaTabla col, string gestor)
         {
             string tipoConvertido = ConvertirTipo(col.Tipo, col.Tamaño, gestor, col.Precision, col.Escala);
             string nulo = col.EsNula ? "" : " NOT NULL";
             string extra = "";
 
-            // Soporte para AUTO_INCREMENT solo para MySQL
             if (col.EsAutoIncrement && gestor.ToLower() == "mysql")
-            {
                 extra = " AUTO_INCREMENT";
-            }
 
             return $"{FormatearIdentificador(col.Nombre, gestor)} {tipoConvertido}{nulo}{extra}";
         }
-
 
         private string FormatearIdentificador(string nombre, string gestor)
         {
@@ -314,7 +254,6 @@ WHERE
             return tipoDestino;
         }
 
-
         private class ColumnaTabla
         {
             public string Nombre { get; set; }
@@ -325,17 +264,6 @@ WHERE
             public bool EsNula { get; set; }
             public bool EsPrimaryKey { get; set; }
             public bool EsAutoIncrement { get; set; }
-
         }
-
-        private class ForeignKey
-        {
-            public string TablaOrigen { get; set; }
-            public string ColumnaOrigen { get; set; }
-            public string TablaReferencia { get; set; }
-            public string ColumnaReferencia { get; set; }
-            public string NombreConstraint { get; set; }
-        }
-
     }
 }

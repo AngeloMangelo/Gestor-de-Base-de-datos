@@ -123,6 +123,7 @@
     <Compile Include="EjecutorSQLDestino.cs" />
     <Compile Include="MIgradorDatos.cs" />
     <Compile Include="MigradorEstructura.cs" />
+    <Compile Include="MigradorRelacional.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Userdata.cs" />
   </ItemGroup>
