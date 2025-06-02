@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BaseDeDatosSQL;
+using Reglas_de_Negocio.Helpers;
 
 namespace Reglas_de_Negocio
 {
@@ -122,7 +123,7 @@ namespace Reglas_de_Negocio
             }
         }
 
-        private List<ColumnaTabla> ObtenerColumnasDesdeSQLServer(string nombreTabla)
+        private List<ColumnaTabla> ObtenerColumnasDesdeSQLServer(string nombreTablaCompleto)
         {
             List<ColumnaTabla> columnas = new List<ColumnaTabla>();
             string connStr = $"Data Source={servidor};Initial Catalog={baseDatos};User ID={usuario};Password={contraseña};";
@@ -131,7 +132,9 @@ namespace Reglas_de_Negocio
             {
                 conn.Open();
 
-                string query = @"
+                string objectId = SqlServerHelper.ConstruirObjectId(nombreTablaCompleto);
+
+                string query = $@"
 SELECT 
     c.name AS Columna,
     t.name AS TipoDato,
@@ -139,10 +142,7 @@ SELECT
     c.precision AS Precision,
     c.scale AS Escala,
     c.is_nullable AS EsNula,
-    (SELECT COUNT(*) 
-     FROM sys.indexes i
-     JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
-     WHERE i.is_primary_key = 1 AND ic.column_id = c.column_id AND ic.object_id = c.object_id) AS EsPK,
+    ISNULL(i.is_primary_key, 0) AS EsPK,
     c.is_identity AS EsAutoIncrement,
     dc.definition AS ValorPorDefecto
 FROM 
@@ -150,15 +150,18 @@ FROM
 JOIN 
     sys.types t ON c.user_type_id = t.user_type_id
 LEFT JOIN 
+    sys.index_columns ic ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+LEFT JOIN 
+    sys.indexes i ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+LEFT JOIN 
     sys.default_constraints dc ON c.default_object_id = dc.object_id
 WHERE 
-    c.object_id = OBJECT_ID(@tabla)
+    c.object_id = OBJECT_ID('{objectId}')
 ORDER BY 
     c.column_id;";
 
                 using (SqlCommand cmd = new SqlCommand(query, conn))
                 {
-                    cmd.Parameters.AddWithValue("@tabla", nombreTabla);
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
@@ -173,12 +176,19 @@ ORDER BY
                                 EsNula = Convert.ToBoolean(reader["EsNula"]),
                                 EsPrimaryKey = Convert.ToBoolean(reader["EsPK"]),
                                 EsAutoIncrement = Convert.ToBoolean(reader["EsAutoIncrement"]),
-                                ValorPorDefecto = reader["ValorPorDefecto"]?.ToString()
+                                ValorPorDefecto = reader["ValorPorDefecto"] != DBNull.Value ? reader["ValorPorDefecto"].ToString() : null
                             });
                         }
                     }
                 }
             }
+
+            // ✅ Elimina columnas duplicadas (por ejemplo, si están en múltiples índices)
+            columnas = columnas
+                .GroupBy(c => c.Nombre)
+                .Select(g => g.First())
+                .ToList();
+
             return columnas;
         }
 

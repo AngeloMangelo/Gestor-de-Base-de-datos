@@ -298,7 +298,7 @@ namespace BaseDeDatosSQL
                 foreach (var tabla in tablasSeleccionadas)
                 {
                     // 🔧 Generar script CREATE TABLE con PK, FK, índices
-                    string script = migrador.GenerarCreateTable(tabla, destino.SistemaGestor);
+                     string script = migrador.GenerarCreateTable(tabla, destino.SistemaGestor);
 
                     // 🧱 Crear la tabla
                     bool ok = EjecutorSQLDestino.EjecutarScript(destino, script);
