@@ -59,9 +59,9 @@ namespace Reglas_de_Negocio
 
                     foreach (DataRow fila in datos.Rows)
                     {
-                        string insert = GenerarInsert(tabla, fila, destino.SistemaGestor);
                         using (DbCommand cmd = connDestino.CreateCommand())
                         {
+                            var insert = GenerarInsertConParametros(tabla, fila, destino.SistemaGestor, cmd);
                             cmd.CommandText = insert;
                             cmd.ExecuteNonQuery();
                         }
@@ -77,6 +77,51 @@ namespace Reglas_de_Negocio
                 MessageBox.Show($"Error al migrar datos de {tabla}: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        private string GenerarInsertConParametros(string tabla, DataRow fila, string gestorDestino, DbCommand cmd)
+        {
+            StringBuilder columnas = new StringBuilder();
+            StringBuilder parametros = new StringBuilder();
+            int index = 0;
+
+            foreach (DataColumn col in fila.Table.Columns)
+            {
+                if (columnas.Length > 0)
+                {
+                    columnas.Append(", ");
+                    parametros.Append(", ");
+                }
+
+                string nombreCol = FormatearIdentificador(col.ColumnName, gestorDestino);
+                string paramName = $"@p{index++}";
+
+                columnas.Append(nombreCol);
+                parametros.Append(paramName);
+
+                var valor = fila[col];
+                var parameter = cmd.CreateParameter();
+                parameter.ParameterName = paramName;
+
+                if (valor == DBNull.Value)
+                {
+                    parameter.Value = DBNull.Value;
+                }
+                else if (valor is byte[])
+                {
+                    parameter.DbType = DbType.Binary;
+                    parameter.Value = (byte[])valor;
+                }
+                else
+                {
+                    parameter.Value = valor;
+                }
+
+                cmd.Parameters.Add(parameter);
+            }
+
+            return $"INSERT INTO {FormatearIdentificador(tabla, gestorDestino)} ({columnas}) VALUES ({parametros});";
+        }
+
 
         private DbConnection CrearConexionDestino(Userdata destino)
         {

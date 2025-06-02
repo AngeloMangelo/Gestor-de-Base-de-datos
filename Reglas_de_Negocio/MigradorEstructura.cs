@@ -155,8 +155,7 @@ LEFT JOIN
 WHERE 
     c.object_id = OBJECT_ID(@tabla)
 ORDER BY 
-    c.column_id;
-";
+    c.column_id;";
 
                 using (SqlCommand cmd = new SqlCommand(query, conn))
                 {
@@ -176,7 +175,6 @@ ORDER BY
                                 EsPrimaryKey = Convert.ToBoolean(reader["EsPK"]),
                                 EsAutoIncrement = Convert.ToBoolean(reader["EsAutoIncrement"]),
                                 ValorPorDefecto = reader["ValorPorDefecto"]?.ToString()
-
                             });
                         }
                     }
@@ -185,8 +183,6 @@ ORDER BY
             return columnas;
         }
 
-
-
         private string FormatearColumna(ColumnaTabla col, string gestor)
         {
             string tipoConvertido = ConvertirTipo(col.Tipo, col.Tamaño, gestor, col.Precision, col.Escala);
@@ -194,23 +190,23 @@ ORDER BY
             string extra = "";
 
             if (col.EsAutoIncrement && gestor.ToLower() == "mysql")
-            {
                 extra += " AUTO_INCREMENT";
-            }
 
             if (!string.IsNullOrEmpty(col.ValorPorDefecto))
             {
-                // Elimina paréntesis de SQL Server, y ajusta formatos típicos
-                string def = col.ValorPorDefecto.Trim('(', ')').Replace("'", "").Trim();
+                string def = col.ValorPorDefecto.Trim('(', ')').Replace("N'", "'").Trim();
 
-                if (char.IsLetter(def.FirstOrDefault()))
-                    def = $"'{def}'"; // probablemente una cadena o función
+                if (!decimal.TryParse(def, out _) && !def.StartsWith("'"))
+                {
+                    def = $"'{def}'";
+                }
 
                 extra += $" DEFAULT {def}";
             }
 
             return $"{FormatearIdentificador(col.Nombre, gestor)} {tipoConvertido}{nulo}{extra}";
         }
+
 
 
         private string FormatearIdentificador(string nombre, string gestor)
@@ -242,7 +238,8 @@ ORDER BY
                     else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric")
                         tipoDestino = $"DECIMAL({precision},{escala})";
                     else if (tipoSqlServer == "float" || tipoSqlServer == "real") tipoDestino = "FLOAT";
-                    else if (tipoSqlServer == "varbinary") tipoDestino = "BLOB";
+                    else if (tipoSqlServer == "image" || tipoSqlServer == "varbinary" || tipoSqlServer == "binary")
+                        tipoDestino = "BLOB";
                     break;
 
                 case "postgresql":
