@@ -77,17 +77,21 @@ WHERE
             {
                 conn.Open();
                 string query = @"
-SELECT i.name AS IndexName,
-       COL_NAME(ic.object_id, ic.column_id) AS ColumnName
+SELECT 
+    i.name AS IndexName,
+    COL_NAME(ic.object_id, ic.column_id) AS ColumnName,
+    t.name AS TipoDato
 FROM sys.indexes i
 JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+JOIN sys.types t ON c.user_type_id = t.user_type_id
 WHERE i.object_id = OBJECT_ID(@tabla)
   AND i.is_primary_key = 0
   AND i.is_unique_constraint = 0
   AND i.type_desc <> 'HEAP'
 ORDER BY i.index_id, ic.key_ordinal;";
 
-                var dict = new Dictionary<string, List<string>>();
+                var dict = new Dictionary<string, List<(string Columna, string Tipo)>>();
 
                 using (var cmd = new SqlCommand(query, conn))
                 {
@@ -96,34 +100,28 @@ ORDER BY i.index_id, ic.key_ordinal;";
                     {
                         while (reader.Read())
                         {
-                            var indexName = reader["IndexName"].ToString();
-                            var column = reader["ColumnName"].ToString();
+                            string indexName = reader["IndexName"].ToString();
+                            string columnName = reader["ColumnName"].ToString();
+                            string tipo = reader["TipoDato"].ToString().ToLower();
 
                             if (!dict.ContainsKey(indexName))
-                                dict[indexName] = new List<string>();
+                                dict[indexName] = new List<(string, string)>();
 
-                            dict[indexName].Add(column);
+                            dict[indexName].Add((columnName, tipo));
                         }
                     }
                 }
 
                 foreach (var kvp in dict)
                 {
-                    string columnas = string.Join(", ", kvp.Value.Select(c =>
+                    var columnasFormateadas = kvp.Value.Select(c =>
                     {
-                        // 👇 Añade longitud si el nombre sugiere campo de texto
-                        string columnaNormalizada = c.ToLower();
-                        bool requiereLongitud = columnaNormalizada.Contains("name") ||
-                                                columnaNormalizada.Contains("guid") ||
-                                                columnaNormalizada.Contains("node") ||
-                                                columnaNormalizada.Contains("id") ||
-                                                columnaNormalizada.Contains("code");
+                        bool esTexto = c.Tipo.Contains("char") || c.Tipo.Contains("text") || c.Tipo.Contains("nchar") || c.Tipo.Contains("varchar") || c.Tipo.Contains("ntext");
+                        return esTexto ? $"`{c.Columna}`(255)" : $"`{c.Columna}`";
+                    });
 
-                        return requiereLongitud ? $"`{c}`(255)" : $"`{c}`";
-                    }));
-
+                    string columnas = string.Join(", ", columnasFormateadas);
                     indices.Add($"CREATE INDEX `{kvp.Key}` ON `{tabla}` ({columnas});");
-
                 }
             }
 

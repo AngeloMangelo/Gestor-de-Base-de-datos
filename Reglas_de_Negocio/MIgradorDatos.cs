@@ -72,7 +72,7 @@ namespace Reglas_de_Negocio
                     connDestino.Close();
                 }
 
-                MessageBox.Show($"Datos migrados correctamente a la tabla {tabla}.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+               MessageBox.Show($"Datos migrados correctamente a la tabla {tabla}.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {

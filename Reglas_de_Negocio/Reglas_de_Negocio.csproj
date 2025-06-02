@@ -120,11 +120,20 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AccesoSQLServer.cs" />
+    <Compile Include="ColumnaTabla.cs" />
     <Compile Include="EjecutorSQLDestino.cs" />
     <Compile Include="Helpers\SqlServerHelper.cs" />
     <Compile Include="MIgradorDatos.cs" />
     <Compile Include="MigradorEstructura.cs" />
+    <Compile Include="MigradorEstructuraPostgres.cs" />
     <Compile Include="MigradorRelacional.cs" />
+    <Compile Include="PostgresEstructuraBuilder.cs" />
+    <Compile Include="PostgresFKGenerator.cs" />
+    <Compile Include="PostgresIndexGenerator.cs" />
+    <Compile Include="PostgresInsertBuilder.cs" />
+    <Compile Include="PostgreSqlColumnFormatter.cs" />
+    <Compile Include="PostgresRelationalBuilder.cs" />
+    <Compile Include="PostgresTableBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Userdata.cs" />
     <Compile Include="ValidarMigracioncs.cs" />

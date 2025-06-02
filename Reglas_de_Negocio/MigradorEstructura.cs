@@ -134,6 +134,9 @@ namespace Reglas_de_Negocio
 
                 string objectId = SqlServerHelper.ConstruirObjectId(nombreTablaCompleto);
 
+                // ✅ Obtener columnas indexadas antes de llenar la lista
+                var nombresIndexados = ObtenerNombresDeColumnasIndexadas(nombreTablaCompleto);
+
                 string query = $@"
 SELECT 
     c.name AS Columna,
@@ -161,30 +164,27 @@ ORDER BY
     c.column_id;";
 
                 using (SqlCommand cmd = new SqlCommand(query, conn))
+                using (SqlDataReader reader = cmd.ExecuteReader())
                 {
-                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    while (reader.Read())
                     {
-                        while (reader.Read())
-                        {
-                            columnas.Add(new ColumnaTabla
-                            {
-                                Nombre = reader["Columna"].ToString(),
-                                Tipo = reader["TipoDato"].ToString(),
-                                Tamaño = Convert.ToInt32(reader["Tamaño"]),
-                                Precision = Convert.ToByte(reader["Precision"]),
-                                Escala = Convert.ToByte(reader["Escala"]),
-                                EsNula = Convert.ToBoolean(reader["EsNula"]),
-                                EsPrimaryKey = Convert.ToBoolean(reader["EsPK"]),
-                                EsAutoIncrement = Convert.ToBoolean(reader["EsAutoIncrement"]),
-                                ValorPorDefecto = reader["ValorPorDefecto"] != DBNull.Value ? reader["ValorPorDefecto"].ToString() : null
-                            });
-                            var nombresIndexados = ObtenerNombresDeColumnasIndexadas(nombreTablaCompleto);
-                            foreach (var col in columnas)
-                            {
-                                col.EsIndexada = nombresIndexados.Contains(col.Nombre, StringComparer.OrdinalIgnoreCase);
-                            }
+                        var nombreCol = reader["Columna"].ToString();
 
-                        }
+                        columnas.Add(new ColumnaTabla
+                        {
+                            Nombre = nombreCol,
+                            Tipo = reader["TipoDato"].ToString(),
+                            Tamaño = Convert.ToInt32(reader["Tamaño"]),
+                            Precision = Convert.ToByte(reader["Precision"]),
+                            Escala = Convert.ToByte(reader["Escala"]),
+                            EsNula = Convert.ToBoolean(reader["EsNula"]),
+                            EsPrimaryKey = Convert.ToBoolean(reader["EsPK"]),
+                            EsAutoIncrement = Convert.ToBoolean(reader["EsAutoIncrement"]),
+                            ValorPorDefecto = reader["ValorPorDefecto"] != DBNull.Value
+                                ? reader["ValorPorDefecto"].ToString()
+                                : null,
+                            EsIndexada = nombresIndexados.Contains(nombreCol, StringComparer.OrdinalIgnoreCase)
+                        });
                     }
                 }
             }
@@ -229,13 +229,14 @@ WHERE ic.object_id = OBJECT_ID(@objName)";
         private string FormatearColumna(ColumnaTabla col, string gestor)
         {
             string tipoConvertido = ConvertirTipo(
-                col.Tipo,
-                col.Tamaño,
-                gestor,
-                col.Precision,
-                col.Escala,
-                col.EsPrimaryKey || col.EsIndexada // clave o índice => cuidado con TEXT/BLOB
-            );
+    col.Tipo,
+    col.Tamaño,
+    gestor,
+    col.Precision,
+    col.Escala,
+    col.EsPrimaryKey || col.EsIndexada
+);
+
 
             string nulo = col.EsNula ? "" : " NOT NULL";
             string extra = "";
@@ -278,7 +279,6 @@ WHERE ic.object_id = OBJECT_ID(@objName)";
 
             return $"{FormatearIdentificador(col.Nombre, gestor)} {tipoConvertido}{nulo}{extra}";
         }
-
 
 
 
@@ -380,7 +380,7 @@ WHERE ic.object_id = OBJECT_ID(@objName)";
         }
 
 
-        private class ColumnaTabla
+        public class ColumnaTabla
         {
             public string Nombre { get; set; }
             public string Tipo { get; set; }
