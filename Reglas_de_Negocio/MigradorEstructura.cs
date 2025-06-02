@@ -239,11 +239,14 @@ ORDER BY
                     else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar" || tipoSqlServer == "nchar" || tipoSqlServer == "char")
                     {
                         if (tamaño == -1 || tamaño >= 4000)
-                            tipoDestino = "LONGTEXT"; // textos extensos
+                            tipoDestino = "LONGTEXT";
                         else if (tamaño > 255)
-                            tipoDestino = "TEXT";     // textos medianos
+                            tipoDestino = "TEXT";
                         else
-                            tipoDestino = $"VARCHAR({tamaño / 2})"; // textos cortos
+                        {
+                            int longitudSegura = Math.Max(20, tamaño / 2);
+                            tipoDestino = $"VARCHAR({longitudSegura})";
+                        }
                     }
                     else if (tipoSqlServer == "text" || tipoSqlServer == "ntext") tipoDestino = "LONGTEXT";
                     else if (tipoSqlServer == "datetime" || tipoSqlServer == "smalldatetime") tipoDestino = "DATETIME";
