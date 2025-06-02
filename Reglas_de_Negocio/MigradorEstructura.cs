@@ -198,8 +198,9 @@ ORDER BY
             string nulo = col.EsNula ? "" : " NOT NULL";
             string extra = "";
 
-            if (col.EsAutoIncrement && gestor.ToLower() == "mysql")
+            if (col.EsAutoIncrement && gestor.ToLower() == "mysql" && col.EsPrimaryKey)
                 extra += " AUTO_INCREMENT";
+
 
             bool tipoPermiteDefault =
                 !(gestor.ToLower() == "mysql" &&
@@ -208,11 +209,27 @@ ORDER BY
 
             if (!string.IsNullOrEmpty(col.ValorPorDefecto) && tipoPermiteDefault)
             {
-                string def = col.ValorPorDefecto.Trim('(', ')').Replace("N'", "'").Trim();
+                string def = col.ValorPorDefecto.Trim('(', ')').Replace("N'", "").Replace("'", "").Trim();
 
-                if (!decimal.TryParse(def, out _) && !def.StartsWith("'") && !def.EndsWith("'"))
+                if (gestor.ToLower() == "mysql")
                 {
-                    def = $"'{def}'";
+                    if (def.Equals("getdate", StringComparison.OrdinalIgnoreCase) ||
+                        def.Equals("sysdatetime", StringComparison.OrdinalIgnoreCase) ||
+                        def.Equals("current_timestamp", StringComparison.OrdinalIgnoreCase))
+                    {
+                        def = "CURRENT_TIMESTAMP";
+                    }
+                    else if (!decimal.TryParse(def, out _))
+                    {
+                        def = $"'{def}'";
+                    }
+                }
+                else
+                {
+                    if (!decimal.TryParse(def, out _) && !def.StartsWith("'"))
+                    {
+                        def = $"'{def}'";
+                    }
                 }
 
                 extra += $" DEFAULT {def}";
@@ -220,6 +237,7 @@ ORDER BY
 
             return $"{FormatearIdentificador(col.Nombre, gestor)} {tipoConvertido}{nulo}{extra}";
         }
+
 
 
 
