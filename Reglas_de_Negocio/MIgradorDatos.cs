@@ -39,7 +39,9 @@ namespace Reglas_de_Negocio
                 using (SqlConnection conn = new SqlConnection(connSql))
                 {
                     conn.Open();
-                    string query = $"SELECT * FROM [{tabla}]";
+                    string[] partes = tabla.Split('.');
+                    string tablaFormateada = partes.Length == 2 ? $"[{partes[0]}].[{partes[1]}]" : $"[{tabla}]";
+                    string query = $"SELECT * FROM {tablaFormateada}";
                     using (SqlDataAdapter da = new SqlDataAdapter(query, conn))
                     {
                         da.Fill(datos);

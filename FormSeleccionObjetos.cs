@@ -139,7 +139,7 @@ namespace BaseDeDatosSQL
                 switch (origen.SistemaGestor.ToLower())
                 {
                     case "sqlserver":
-                        cmd.CommandText = $"USE [{nombreBD}]; SELECT name FROM sys.tables ORDER BY name";
+                        cmd.CommandText = $"USE [{nombreBD}]; SELECT s.name + '.' + t.name AS Tabla FROM sys.tables t JOIN sys.schemas s ON t.schema_id = s.schema_id ORDER BY Tabla";
                         break;
                     case "mysql":
                         cmd.CommandText = $"SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'";
