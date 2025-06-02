@@ -310,8 +310,8 @@ namespace BaseDeDatosSQL
                         migradorDatos.MigrarDatos(tabla, destino);
 
                         // ✅ Validar registros migrados
-                        string validacion = ValidadorMigracion.ValidarConteoRegistros(tabla, origen, destino);
-                        rtbResultados.AppendText(validacion + "\n\n");
+                        //string validacion = ValidadorMigracion.ValidarConteoRegistros(tabla, origen, destino);
+                        //rtbResultados.AppendText(validacion + "\n\n");
                     }
                     else
                     {

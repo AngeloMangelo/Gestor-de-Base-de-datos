@@ -139,17 +139,16 @@ SELECT
     c.precision AS Precision,
     c.scale AS Escala,
     c.is_nullable AS EsNula,
-    ISNULL(i.is_primary_key, 0) AS EsPK,
+    (SELECT COUNT(*) 
+     FROM sys.indexes i
+     JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+     WHERE i.is_primary_key = 1 AND ic.column_id = c.column_id AND ic.object_id = c.object_id) AS EsPK,
     c.is_identity AS EsAutoIncrement,
     dc.definition AS ValorPorDefecto
 FROM 
     sys.columns c
 JOIN 
     sys.types t ON c.user_type_id = t.user_type_id
-LEFT JOIN 
-    sys.index_columns ic ON c.object_id = ic.object_id AND c.column_id = ic.column_id
-LEFT JOIN 
-    sys.indexes i ON ic.object_id = i.object_id AND ic.index_id = i.index_id
 LEFT JOIN 
     sys.default_constraints dc ON c.default_object_id = dc.object_id
 WHERE 
@@ -192,11 +191,16 @@ ORDER BY
             if (col.EsAutoIncrement && gestor.ToLower() == "mysql")
                 extra += " AUTO_INCREMENT";
 
-            if (!string.IsNullOrEmpty(col.ValorPorDefecto))
+            bool tipoPermiteDefault =
+                !(gestor.ToLower() == "mysql" &&
+                 (tipoConvertido.StartsWith("TEXT", StringComparison.OrdinalIgnoreCase) ||
+                  tipoConvertido.StartsWith("BLOB", StringComparison.OrdinalIgnoreCase)));
+
+            if (!string.IsNullOrEmpty(col.ValorPorDefecto) && tipoPermiteDefault)
             {
                 string def = col.ValorPorDefecto.Trim('(', ')').Replace("N'", "'").Trim();
 
-                if (!decimal.TryParse(def, out _) && !def.StartsWith("'"))
+                if (!decimal.TryParse(def, out _) && !def.StartsWith("'") && !def.EndsWith("'"))
                 {
                     def = $"'{def}'";
                 }
@@ -206,6 +210,7 @@ ORDER BY
 
             return $"{FormatearIdentificador(col.Nombre, gestor)} {tipoConvertido}{nulo}{extra}";
         }
+
 
 
 
@@ -224,61 +229,80 @@ ORDER BY
         private string ConvertirTipo(string tipoSqlServer, int tamaño, string gestor, byte precision = 0, byte escala = 0)
         {
             tipoSqlServer = tipoSqlServer.ToLower();
-            string tipoDestino = "TEXT";
+            string tipoDestino = "TEXT"; // valor por defecto de respaldo
 
             switch (gestor.ToLower())
             {
                 case "mysql":
                     if (tipoSqlServer.Contains("int")) tipoDestino = "INT";
                     else if (tipoSqlServer == "bit") tipoDestino = "TINYINT(1)";
-                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar")
-                        tipoDestino = $"VARCHAR({(tamaño == -1 ? 255 : tamaño / 2)})";
+                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar" ||
+                             tipoSqlServer == "nchar" || tipoSqlServer == "char")
+                    {
+                        int longitud = (tamaño == -1 || tamaño > 5000) ? 255 : tamaño / 2;
+                        tipoDestino = $"VARCHAR({longitud})";
+                    }
                     else if (tipoSqlServer == "text" || tipoSqlServer == "ntext") tipoDestino = "TEXT";
-                    else if (tipoSqlServer == "datetime") tipoDestino = "DATETIME";
-                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric")
-                        tipoDestino = $"DECIMAL({precision},{escala})";
+                    else if (tipoSqlServer == "datetime" || tipoSqlServer == "smalldatetime") tipoDestino = "DATETIME";
+                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric" || tipoSqlServer == "money" || tipoSqlServer == "smallmoney")
+                        tipoDestino = $"DECIMAL({(precision == 0 ? 19 : precision)},{escala})";
                     else if (tipoSqlServer == "float" || tipoSqlServer == "real") tipoDestino = "FLOAT";
-                    else if (tipoSqlServer == "image" || tipoSqlServer == "varbinary" || tipoSqlServer == "binary")
+                    else if (tipoSqlServer == "varbinary" || tipoSqlServer == "image" || tipoSqlServer == "binary")
                         tipoDestino = "BLOB";
                     break;
 
                 case "postgresql":
                     if (tipoSqlServer.Contains("int")) tipoDestino = "INTEGER";
                     else if (tipoSqlServer == "bit") tipoDestino = "BOOLEAN";
-                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar")
-                        tipoDestino = $"VARCHAR({(tamaño == -1 ? 255 : tamaño / 2)})";
+                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar" ||
+                             tipoSqlServer == "nchar" || tipoSqlServer == "char")
+                    {
+                        int longitud = (tamaño == -1 || tamaño > 5000) ? 255 : tamaño / 2;
+                        tipoDestino = $"VARCHAR({longitud})";
+                    }
                     else if (tipoSqlServer == "text" || tipoSqlServer == "ntext") tipoDestino = "TEXT";
-                    else if (tipoSqlServer == "datetime") tipoDestino = "TIMESTAMP";
-                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric")
-                        tipoDestino = $"NUMERIC({precision},{escala})";
+                    else if (tipoSqlServer == "datetime" || tipoSqlServer == "smalldatetime") tipoDestino = "TIMESTAMP";
+                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric" || tipoSqlServer == "money" || tipoSqlServer == "smallmoney")
+                        tipoDestino = $"NUMERIC({(precision == 0 ? 19 : precision)},{escala})";
                     else if (tipoSqlServer == "float" || tipoSqlServer == "real") tipoDestino = "FLOAT8";
-                    else if (tipoSqlServer == "varbinary") tipoDestino = "BYTEA";
+                    else if (tipoSqlServer == "varbinary" || tipoSqlServer == "image" || tipoSqlServer == "binary")
+                        tipoDestino = "BYTEA";
                     break;
 
                 case "oracle":
                     if (tipoSqlServer.Contains("int")) tipoDestino = "NUMBER";
                     else if (tipoSqlServer == "bit") tipoDestino = "NUMBER(1)";
-                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar")
-                        tipoDestino = $"VARCHAR2({(tamaño == -1 ? 255 : tamaño / 2)})";
+                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar" ||
+                             tipoSqlServer == "nchar" || tipoSqlServer == "char")
+                    {
+                        int longitud = (tamaño == -1 || tamaño > 5000) ? 255 : tamaño / 2;
+                        tipoDestino = $"VARCHAR2({longitud})";
+                    }
                     else if (tipoSqlServer == "text" || tipoSqlServer == "ntext") tipoDestino = "CLOB";
-                    else if (tipoSqlServer == "datetime") tipoDestino = "DATE";
-                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric")
-                        tipoDestino = $"NUMBER({precision},{escala})";
+                    else if (tipoSqlServer == "datetime" || tipoSqlServer == "smalldatetime") tipoDestino = "DATE";
+                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric" || tipoSqlServer == "money" || tipoSqlServer == "smallmoney")
+                        tipoDestino = $"NUMBER({(precision == 0 ? 19 : precision)},{escala})";
                     else if (tipoSqlServer == "float" || tipoSqlServer == "real") tipoDestino = "FLOAT";
-                    else if (tipoSqlServer == "varbinary") tipoDestino = "BLOB";
+                    else if (tipoSqlServer == "varbinary" || tipoSqlServer == "image" || tipoSqlServer == "binary")
+                        tipoDestino = "BLOB";
                     break;
 
                 case "firebird":
                     if (tipoSqlServer.Contains("int")) tipoDestino = "INTEGER";
                     else if (tipoSqlServer == "bit") tipoDestino = "SMALLINT";
-                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar")
-                        tipoDestino = $"VARCHAR({(tamaño == -1 ? 255 : tamaño / 2)})";
+                    else if (tipoSqlServer == "nvarchar" || tipoSqlServer == "varchar" ||
+                             tipoSqlServer == "nchar" || tipoSqlServer == "char")
+                    {
+                        int longitud = (tamaño == -1 || tamaño > 5000) ? 255 : tamaño / 2;
+                        tipoDestino = $"VARCHAR({longitud})";
+                    }
                     else if (tipoSqlServer == "text" || tipoSqlServer == "ntext") tipoDestino = "BLOB SUB_TYPE TEXT";
-                    else if (tipoSqlServer == "datetime") tipoDestino = "TIMESTAMP";
-                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric")
-                        tipoDestino = $"NUMERIC({precision},{escala})";
+                    else if (tipoSqlServer == "datetime" || tipoSqlServer == "smalldatetime") tipoDestino = "TIMESTAMP";
+                    else if (tipoSqlServer == "decimal" || tipoSqlServer == "numeric" || tipoSqlServer == "money" || tipoSqlServer == "smallmoney")
+                        tipoDestino = $"NUMERIC({(precision == 0 ? 19 : precision)},{escala})";
                     else if (tipoSqlServer == "float" || tipoSqlServer == "real") tipoDestino = "FLOAT";
-                    else if (tipoSqlServer == "varbinary") tipoDestino = "BLOB";
+                    else if (tipoSqlServer == "varbinary" || tipoSqlServer == "image" || tipoSqlServer == "binary")
+                        tipoDestino = "BLOB";
                     break;
             }
 
